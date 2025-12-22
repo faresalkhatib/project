@@ -5,7 +5,7 @@ import * as Yup from "yup";
 import { Form, Button, Dropdown } from "semantic-ui-react";
 import { COLORS, SPACING } from "../utils/designConstants";
 
-const BookingForm = ({ onSubmit, loading, classrooms, teacherInfo }) => {
+const BookingForm = ({ onSubmit, loading, classrooms, teacherInfo, error }) => {
   const validationSchema = Yup.object({
     classroomId: Yup.string().required("القاعة مطلوبة"),
     subjectNumber: Yup.string().required("رقم المادة مطلوب"),
@@ -13,7 +13,17 @@ const BookingForm = ({ onSubmit, loading, classrooms, teacherInfo }) => {
     date: Yup.date()
       .required("التاريخ مطلوب")
       .min(new Date(), "التاريخ يجب أن يكون في المستقبل"),
-    time: Yup.string().required("الوقت مطلوب"),
+    startTime: Yup.string().required("وقت البداية مطلوب"),
+    endTime: Yup.string()
+      .required("وقت النهاية مطلوب")
+      .test(
+        "is-greater",
+        "وقت النهاية يجب أن يكون بعد وقت البداية",
+        function (value) {
+          const { startTime } = this.parent;
+          return !startTime || !value || value > startTime;
+        }
+      ),
   });
 
   const classroomOptions = classrooms.map((classroom) => ({
@@ -39,9 +49,11 @@ const BookingForm = ({ onSubmit, loading, classrooms, teacherInfo }) => {
       initialValues={{
         classroomId: "",
         subjectNumber: "",
+        subjectSubNumber: "",
         subjectName: "",
         date: "",
-        time: "",
+        startTime: "",
+        endTime: "",
       }}
       validationSchema={validationSchema}
       onSubmit={(values, { resetForm }) => {
@@ -53,6 +65,7 @@ const BookingForm = ({ onSubmit, loading, classrooms, teacherInfo }) => {
         const bookingData = {
           ...values,
           classroomName: selectedClassroom?.name || "",
+          classroom: selectedClassroom?.name || "",
           teacherId: teacherInfo.uid,
           teacherName: teacherInfo.name,
         };
@@ -123,6 +136,34 @@ const BookingForm = ({ onSubmit, loading, classrooms, teacherInfo }) => {
             )}
           </Form.Field>
 
+          <Form.Field
+            error={touched.subjectSubNumber && !!errors.subjectSubNumber}
+          >
+            <label style={{ textAlign: "right", color: COLORS.textPrimary }}>
+              الشعبة
+            </label>
+            <input
+              type="number"
+              name="subjectSubNumber"
+              placeholder="مثال: شعبة 1"
+              value={values.subjectSubNumber}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              style={inputStyle}
+            />
+            {touched.subjectSubNumber && errors.subjectSubNumber && (
+              <div
+                style={{
+                  color: COLORS.error,
+                  textAlign: "right",
+                  marginTop: SPACING.xs,
+                }}
+              >
+                {errors.subjectSubNumber}
+              </div>
+            )}
+          </Form.Field>
+
           <Form.Field error={touched.classroomId && !!errors.classroomId}>
             <label style={{ textAlign: "right", color: COLORS.textPrimary }}>
               القاعة
@@ -150,20 +191,45 @@ const BookingForm = ({ onSubmit, loading, classrooms, teacherInfo }) => {
             )}
           </Form.Field>
 
+          <Form.Field error={touched.date && !!errors.date}>
+            <label style={{ textAlign: "right", color: COLORS.textPrimary }}>
+              التاريخ
+            </label>
+            <input
+              type="date"
+              name="date"
+              value={values.date}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              style={inputStyle}
+            />
+            {touched.date && errors.date && (
+              <div
+                style={{
+                  color: COLORS.error,
+                  textAlign: "right",
+                  marginTop: SPACING.xs,
+                }}
+              >
+                {errors.date}
+              </div>
+            )}
+          </Form.Field>
+
           <Form.Group widths="equal">
-            <Form.Field error={touched.date && !!errors.date}>
+            <Form.Field error={touched.startTime && !!errors.startTime}>
               <label style={{ textAlign: "right", color: COLORS.textPrimary }}>
-                التاريخ
+                وقت البداية
               </label>
               <input
-                type="date"
-                name="date"
-                value={values.date}
+                type="time"
+                name="startTime"
+                value={values.startTime}
                 onChange={handleChange}
                 onBlur={handleBlur}
                 style={inputStyle}
               />
-              {touched.date && errors.date && (
+              {touched.startTime && errors.startTime && (
                 <div
                   style={{
                     color: COLORS.error,
@@ -171,24 +237,24 @@ const BookingForm = ({ onSubmit, loading, classrooms, teacherInfo }) => {
                     marginTop: SPACING.xs,
                   }}
                 >
-                  {errors.date}
+                  {errors.startTime}
                 </div>
               )}
             </Form.Field>
 
-            <Form.Field error={touched.time && !!errors.time}>
+            <Form.Field error={touched.endTime && !!errors.endTime}>
               <label style={{ textAlign: "right", color: COLORS.textPrimary }}>
-                الوقت
+                وقت النهاية
               </label>
               <input
                 type="time"
-                name="time"
-                value={values.time}
+                name="endTime"
+                value={values.endTime}
                 onChange={handleChange}
                 onBlur={handleBlur}
                 style={inputStyle}
               />
-              {touched.time && errors.time && (
+              {touched.endTime && errors.endTime && (
                 <div
                   style={{
                     color: COLORS.error,
@@ -196,7 +262,7 @@ const BookingForm = ({ onSubmit, loading, classrooms, teacherInfo }) => {
                     marginTop: SPACING.xs,
                   }}
                 >
-                  {errors.time}
+                  {errors.endTime}
                 </div>
               )}
             </Form.Field>
@@ -210,6 +276,21 @@ const BookingForm = ({ onSubmit, loading, classrooms, teacherInfo }) => {
           >
             إنشاء حجز
           </Button>
+
+          {error && (
+            <div
+              style={{
+                color: COLORS.error,
+                textAlign: "center",
+                marginTop: SPACING.sm,
+                padding: SPACING.sm,
+                backgroundColor: "#ffebee",
+                borderRadius: "4px",
+              }}
+            >
+              {error}
+            </div>
+          )}
 
           {classrooms.length === 0 && (
             <div

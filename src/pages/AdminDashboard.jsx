@@ -21,17 +21,19 @@ import Table from "../components/Table";
 import AddClassroomForm from "../forms/AddClassroomForm";
 import ConfirmModal from "../modals/ConfirmModal";
 import {
-  fetchAllBookings,
+  subscribeToAllBookings,
   updateBookingStatus,
   deleteBooking,
   clearMessages as clearBookingMessages,
+  cleanup as cleanupBookings,
 } from "../redux/bookingSlice";
 import {
-  fetchClassrooms,
+  subscribeToClassrooms,
   addClassroom,
   updateClassroom,
   deleteClassroom,
   clearMessages as clearClassroomMessages,
+  cleanup as cleanupClassrooms,
 } from "../redux/classroomSlice";
 import { COLORS, SPACING, SHADOWS } from "../utils/designConstants";
 
@@ -71,8 +73,15 @@ const AdminDashboard = () => {
       return;
     }
 
-    dispatch(fetchAllBookings());
-    dispatch(fetchClassrooms());
+    // Subscribe to real-time updates
+    dispatch(subscribeToAllBookings());
+    dispatch(subscribeToClassrooms());
+
+    // Cleanup on unmount
+    return () => {
+      dispatch(cleanupBookings());
+      dispatch(cleanupClassrooms());
+    };
   }, [dispatch, user, isAuthenticated, navigate]);
 
   useEffect(() => {
@@ -227,6 +236,7 @@ const AdminDashboard = () => {
   const bookingsColumns = [
     { header: "المادة", accessor: "subjectName" },
     { header: "رقم المادة", accessor: "subjectNumber" },
+    { header: "الشعبة", accessor: "subjectSubNumber" },
     { header: "القاعة", accessor: "classroomName" },
     {
       header: "التاريخ",
@@ -238,7 +248,16 @@ const AdminDashboard = () => {
         return row.date || "-";
       },
     },
-    { header: "الوقت", accessor: "time" },
+    {
+      header: "وقت البداية",
+      accessor: "startTime",
+      render: (row) => row.startTime || "-",
+    },
+    {
+      header: "وقت النهاية",
+      accessor: "endTime",
+      render: (row) => row.endTime || "-",
+    },
     { header: "الدكتور", accessor: "teacherName" },
     {
       header: "الحالة",

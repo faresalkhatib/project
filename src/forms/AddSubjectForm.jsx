@@ -24,7 +24,11 @@ const AddSubjectForm = ({ onSubmit, loading }) => {
 
   return (
     <Formik
-      initialValues={{ subjectNumber: "", subjectName: "" }}
+      initialValues={{
+        subjectNumber: "",
+        subjectName: "",
+        subjectSubNumber: "",
+      }}
       validationSchema={validationSchema}
       onSubmit={(values, { resetForm }) => {
         onSubmit(values);
@@ -60,6 +64,30 @@ const AddSubjectForm = ({ onSubmit, loading }) => {
                   }}
                 >
                   {errors.subjectNumber}
+                </div>
+              )}
+            </Form.Field>
+            <Form.Field
+              error={touched.subjectSubNumber && !!errors.subjectSubNumber}
+            >
+              <input
+                type="number"
+                name="subjectSubNumber"
+                placeholder="مثال:شعبه 1"
+                value={values.subjectSubNumber}
+                onChange={handleChange}
+                onBlur={handleBlur}
+                style={inputStyle}
+              />
+              {touched.subjectSubNumber && errors.subjectSubNumber && (
+                <div
+                  style={{
+                    color: COLORS.error,
+                    textAlign: "right",
+                    marginTop: SPACING.xs,
+                  }}
+                >
+                  {errors.subjectName}
                 </div>
               )}
             </Form.Field>

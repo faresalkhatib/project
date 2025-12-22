@@ -1,3 +1,4 @@
+// src/pages/StudentDashboard.js
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
@@ -6,9 +7,12 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import Table from "../components/Table";
 import AddSubjectForm from "../forms/AddSubjectForm";
-import { fetchStudentBookings } from "../redux/bookingSlice";
+import {
+  subscribeToStudentBookings,
+  cleanup as cleanupBookings,
+} from "../redux/bookingSlice";
 import { updateUserSubjects } from "../redux/userSlice";
-import { COLORS, SPACING, SHADOWS } from "../utils/designConstants";
+import { COLORS } from "../utils/designConstants";
 
 const StudentDashboard = () => {
   const dispatch = useDispatch();
@@ -32,20 +36,34 @@ const StudentDashboard = () => {
       return;
     }
 
+    // Subscribe to real-time updates
     if (user?.registeredSubjects) {
-      dispatch(fetchStudentBookings(user.registeredSubjects));
+      dispatch(subscribeToStudentBookings(user.registeredSubjects));
     }
-  }, [dispatch, user, isAuthenticated, navigate]);
+
+    // Cleanup on unmount
+    return () => {
+      dispatch(cleanupBookings());
+    };
+  }, [
+    dispatch,
+    user?.registeredSubjects,
+    isAuthenticated,
+    navigate,
+    user?.role,
+  ]);
 
   const handleAddSubject = (newSubject) => {
     const currentSubjects = user?.registeredSubjects || [];
 
     const exists = currentSubjects.some(
-      (sub) => sub.subjectNumber === newSubject.subjectNumber
+      (sub) =>
+        sub.subjectNumber === newSubject.subjectNumber &&
+        sub.subjectSubNumber === newSubject.subjectSubNumber
     );
 
     if (exists) {
-      alert("هذه المادة مسجلة بالفعل");
+      alert("هذه المادة والشعبة مسجلة بالفعل");
       return;
     }
 
@@ -59,9 +77,13 @@ const StudentDashboard = () => {
     );
   };
 
-  const handleRemoveSubject = (subjectNumber) => {
+  const handleRemoveSubject = (subjectNumber, subjectSubNumber) => {
     const updatedSubjects = user.registeredSubjects.filter(
-      (sub) => sub.subjectNumber !== subjectNumber
+      (sub) =>
+        !(
+          sub.subjectNumber === subjectNumber &&
+          sub.subjectSubNumber === subjectSubNumber
+        )
     );
 
     dispatch(
@@ -75,6 +97,7 @@ const StudentDashboard = () => {
   const columns = [
     { header: "المادة", accessor: "subjectName" },
     { header: "رقم المادة", accessor: "subjectNumber" },
+    { header: "رقم الشعبة", accessor: "subjectSubNumber" },
     { header: "القاعة", accessor: "classroomName" },
     {
       header: "التاريخ",
@@ -86,7 +109,16 @@ const StudentDashboard = () => {
         return row.date || "-";
       },
     },
-    { header: "الوقت", accessor: "time" },
+    {
+      header: "وقت البداية",
+      accessor: "startTime",
+      render: (row) => row.startTime || "-",
+    },
+    {
+      header: "وقت النهاية",
+      accessor: "endTime",
+      render: (row) => row.endTime || "-",
+    },
     { header: "الدكتور", accessor: "teacherName" },
   ];
 
@@ -459,7 +491,8 @@ const StudentDashboard = () => {
                           fontSize: "clamp(0.85rem, 2vw, 0.95rem)",
                         }}
                       >
-                        {subject.subjectNumber}
+                        {subject.subjectNumber} - شعبة{" "}
+                        {subject.subjectSubNumber}
                       </div>
                     </div>
                     <Button
@@ -482,7 +515,12 @@ const StudentDashboard = () => {
                         e.target.style.backgroundColor = "#dc3545";
                         e.target.style.transform = "scale(1)";
                       }}
-                      onClick={() => handleRemoveSubject(subject.subjectNumber)}
+                      onClick={() =>
+                        handleRemoveSubject(
+                          subject.subjectNumber,
+                          subject.subjectSubNumber
+                        )
+                      }
                     />
                   </div>
                 ))}

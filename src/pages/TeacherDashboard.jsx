@@ -1,4 +1,4 @@
-// src/pages/TeacherDashboard.js - REPLACE WITH THIS
+// src/pages/TeacherDashboard.js
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
@@ -16,13 +16,17 @@ import Table from "../components/Table";
 import BookingForm from "../forms/BookingForm";
 import ConfirmModal from "../modals/ConfirmModal";
 import {
-  fetchTeacherBookings,
+  subscribeToTeacherBookings,
   createBooking,
   deleteBooking,
   clearMessages,
+  cleanup as cleanupBookings,
 } from "../redux/bookingSlice";
-import { fetchClassrooms } from "../redux/classroomSlice";
-import { COLORS, SPACING, SHADOWS } from "../utils/designConstants";
+import {
+  subscribeToClassrooms,
+  cleanup as cleanupClassrooms,
+} from "../redux/classroomSlice";
+import { COLORS, SPACING } from "../utils/designConstants";
 
 const TeacherDashboard = () => {
   const dispatch = useDispatch();
@@ -52,8 +56,15 @@ const TeacherDashboard = () => {
       return;
     }
 
-    dispatch(fetchTeacherBookings(user.uid));
-    dispatch(fetchClassrooms());
+    // Subscribe to real-time updates
+    dispatch(subscribeToTeacherBookings(user.uid));
+    dispatch(subscribeToClassrooms());
+
+    // Cleanup on unmount
+    return () => {
+      dispatch(cleanupBookings());
+      dispatch(cleanupClassrooms());
+    };
   }, [dispatch, user, isAuthenticated, navigate]);
 
   useEffect(() => {
@@ -65,9 +76,20 @@ const TeacherDashboard = () => {
     }
   }, [successMessage, dispatch]);
 
-  const handleCreateBooking = (bookingData) => {
-    dispatch(createBooking(bookingData));
-    setShowBookingForm(false);
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => {
+        dispatch(clearMessages());
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error, dispatch]);
+
+  const handleCreateBooking = async (bookingData) => {
+    const result = await dispatch(createBooking(bookingData));
+    if (!result.error) {
+      setShowBookingForm(false);
+    }
   };
 
   const handleDeleteBooking = (bookingId) => {
@@ -91,6 +113,7 @@ const TeacherDashboard = () => {
   const columns = [
     { header: "المادة", accessor: "subjectName" },
     { header: "رقم المادة", accessor: "subjectNumber" },
+    { header: "الشعبة", accessor: "subjectSubNumber" },
     { header: "القاعة", accessor: "classroomName" },
     {
       header: "التاريخ",
@@ -102,7 +125,16 @@ const TeacherDashboard = () => {
         return row.date || "-";
       },
     },
-    { header: "الوقت", accessor: "time" },
+    {
+      header: "وقت البداية",
+      accessor: "startTime",
+      render: (row) => row.startTime || "-",
+    },
+    {
+      header: "وقت النهاية",
+      accessor: "endTime",
+      render: (row) => row.endTime || "-",
+    },
     {
       header: "الحالة",
       accessor: "status",
@@ -342,8 +374,8 @@ const TeacherDashboard = () => {
             ))}
           </div>
 
-          {/* Messages */}
-          {error && (
+          {/* Messages - Global Error (shown outside form) */}
+          {error && !showBookingForm && (
             <Message
               negative
               style={{
@@ -449,7 +481,12 @@ const TeacherDashboard = () => {
                   e.target.style.transform = "translateY(0)";
                   e.target.style.boxShadow = "0 4px 15px rgba(139, 0, 0, 0.3)";
                 }}
-                onClick={() => setShowBookingForm(!showBookingForm)}
+                onClick={() => {
+                  setShowBookingForm(!showBookingForm);
+                  if (!showBookingForm) {
+                    dispatch(clearMessages());
+                  }
+                }}
               >
                 <Icon
                   style={{ marginRight: "0.5rem", marginLeft: "0.5rem" }}
@@ -480,6 +517,7 @@ const TeacherDashboard = () => {
                     loading={loading}
                     classrooms={classrooms}
                     teacherInfo={user}
+                    error={error}
                   />
                 )}
               </div>

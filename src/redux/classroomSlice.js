@@ -2,34 +2,44 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import {
   collection,
-  getDocs,
   addDoc,
   updateDoc,
   deleteDoc,
   doc,
   Timestamp,
+  onSnapshot,
 } from "firebase/firestore";
 import { db } from "../api/firebase";
 
-// Fetch all classrooms
-export const fetchClassrooms = createAsyncThunk(
-  "classrooms/fetchClassrooms",
-  async (_, { rejectWithValue }) => {
+/* ===================== SUBSCRIBE TO CLASSROOMS ===================== */
+export const subscribeToClassrooms = createAsyncThunk(
+  "classrooms/subscribeToClassrooms",
+  async (_, { dispatch, rejectWithValue }) => {
     try {
       const classroomsRef = collection(db, "classrooms");
-      const snapshot = await getDocs(classroomsRef);
-      const classrooms = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      return classrooms;
+
+      const unsubscribe = onSnapshot(
+        classroomsRef,
+        (snapshot) => {
+          const classrooms = snapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
+          dispatch(setClassrooms(classrooms));
+        },
+        (error) => {
+          dispatch(setError(error.message));
+        }
+      );
+
+      return unsubscribe;
     } catch (error) {
       return rejectWithValue(error.message);
     }
   }
 );
 
-// Add new classroom
+/* ===================== ADD CLASSROOM ===================== */
 export const addClassroom = createAsyncThunk(
   "classrooms/addClassroom",
   async (classroomData, { rejectWithValue }) => {
@@ -50,7 +60,7 @@ export const addClassroom = createAsyncThunk(
   }
 );
 
-// Update classroom
+/* ===================== UPDATE CLASSROOM ===================== */
 export const updateClassroom = createAsyncThunk(
   "classrooms/updateClassroom",
   async ({ classroomId, classroomData }, { rejectWithValue }) => {
@@ -68,7 +78,7 @@ export const updateClassroom = createAsyncThunk(
   }
 );
 
-// Delete classroom
+/* ===================== DELETE CLASSROOM ===================== */
 export const deleteClassroom = createAsyncThunk(
   "classrooms/deleteClassroom",
   async (classroomId, { rejectWithValue }) => {
@@ -82,11 +92,13 @@ export const deleteClassroom = createAsyncThunk(
   }
 );
 
+/* ===================== SLICE ===================== */
 const initialState = {
   classrooms: [],
   loading: false,
   error: null,
   successMessage: null,
+  unsubscribe: null,
 };
 
 const classroomSlice = createSlice({
@@ -97,19 +109,35 @@ const classroomSlice = createSlice({
       state.error = null;
       state.successMessage = null;
     },
+    setClassrooms: (state, action) => {
+      state.classrooms = action.payload;
+      state.loading = false;
+    },
+    setError: (state, action) => {
+      state.error = action.payload;
+      state.loading = false;
+    },
+    cleanup: (state) => {
+      if (state.unsubscribe) {
+        if (typeof state.unsubscribe === "function") {
+          state.unsubscribe();
+        }
+        state.unsubscribe = null;
+      }
+    },
   },
   extraReducers: (builder) => {
     builder
-      // Fetch Classrooms
-      .addCase(fetchClassrooms.pending, (state) => {
+      // Subscribe to classrooms
+      .addCase(subscribeToClassrooms.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchClassrooms.fulfilled, (state, action) => {
+      .addCase(subscribeToClassrooms.fulfilled, (state, action) => {
         state.loading = false;
-        state.classrooms = action.payload;
+        state.unsubscribe = action.payload;
       })
-      .addCase(fetchClassrooms.rejected, (state, action) => {
+      .addCase(subscribeToClassrooms.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })
@@ -118,9 +146,8 @@ const classroomSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(addClassroom.fulfilled, (state, action) => {
+      .addCase(addClassroom.fulfilled, (state) => {
         state.loading = false;
-        state.classrooms.push(action.payload);
         state.successMessage = "تم إضافة القاعة بنجاح";
       })
       .addCase(addClassroom.rejected, (state, action) => {
@@ -132,13 +159,8 @@ const classroomSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(updateClassroom.fulfilled, (state, action) => {
+      .addCase(updateClassroom.fulfilled, (state) => {
         state.loading = false;
-        const { classroomId, classroomData } = action.payload;
-        const classroom = state.classrooms.find((c) => c.id === classroomId);
-        if (classroom) {
-          Object.assign(classroom, classroomData);
-        }
         state.successMessage = "تم تحديث القاعة بنجاح";
       })
       .addCase(updateClassroom.rejected, (state, action) => {
@@ -150,11 +172,8 @@ const classroomSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(deleteClassroom.fulfilled, (state, action) => {
+      .addCase(deleteClassroom.fulfilled, (state) => {
         state.loading = false;
-        state.classrooms = state.classrooms.filter(
-          (c) => c.id !== action.payload
-        );
         state.successMessage = "تم حذف القاعة بنجاح";
       })
       .addCase(deleteClassroom.rejected, (state, action) => {
@@ -164,5 +183,6 @@ const classroomSlice = createSlice({
   },
 });
 
-export const { clearMessages } = classroomSlice.actions;
+export const { clearMessages, setClassrooms, setError, cleanup } =
+  classroomSlice.actions;
 export default classroomSlice.reducer;
