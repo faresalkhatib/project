@@ -1,4 +1,3 @@
-// src/redux/bookingSlice.js
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import {
   collection,
@@ -20,399 +19,218 @@ export const checkBookingConflict = createAsyncThunk(
   async ({ classroom, date, startTime, endTime }, { rejectWithValue }) => {
     try {
       if (!classroom || !date || !startTime || !endTime) {
-        return rejectWithValue("Missing required fields for conflict check");
+        return rejectWithValue("Missing required fields");
       }
 
-      const bookingsRef = collection(db, "bookings");
-
-      // Query for bookings in the same classroom and date
       const q = query(
-        bookingsRef,
+        collection(db, "bookings"),
         where("classroom", "==", classroom),
         where("date", "==", date),
         where("status", "in", ["approved", "pending"])
       );
 
-      const snapshot = await getDocs(q);
+      const snap = await getDocs(q);
 
-      // Check for time overlap
-      for (const doc of snapshot.docs) {
-        const booking = doc.data();
-        const existingStart = booking.startTime;
-        const existingEnd = booking.endTime;
+      for (const d of snap.docs) {
+        const b = d.data();
+        const overlap =
+          (startTime >= b.startTime && startTime < b.endTime) ||
+          (endTime > b.startTime && endTime <= b.endTime) ||
+          (startTime <= b.startTime && endTime >= b.endTime);
 
-        // Check if times overlap
-        const hasOverlap =
-          (startTime >= existingStart && startTime < existingEnd) ||
-          (endTime > existingStart && endTime <= existingEnd) ||
-          (startTime <= existingStart && endTime >= existingEnd);
-
-        if (hasOverlap) {
+        if (overlap) {
           return {
             hasConflict: true,
             message: "القاعة محجوزة",
-            conflictingBooking: {
-              id: doc.id,
-              ...booking,
-            },
+            conflictingBooking: { id: d.id, ...b },
           };
         }
       }
 
-      return { hasConflict: false, message: null };
-    } catch (error) {
-      return rejectWithValue(error.message);
+      return { hasConflict: false };
+    } catch (e) {
+      return rejectWithValue(e.message);
     }
   }
 );
 
-/* ===================== SUBSCRIBE TO ALL BOOKINGS (ADMIN) ===================== */
+/* ===================== SUBSCRIBE (ADMIN) ===================== */
 export const subscribeToAllBookings = createAsyncThunk(
   "bookings/subscribeToAllBookings",
-  async (_, { dispatch, rejectWithValue }) => {
-    try {
-      const bookingsRef = collection(db, "bookings");
-
-      const unsubscribe = onSnapshot(
-        bookingsRef,
-        (snapshot) => {
-          const bookings = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          }));
-          dispatch(setBookings(bookings));
-        },
-        (error) => {
-          dispatch(setError(error.message));
-        }
-      );
-
-      return unsubscribe;
-    } catch (error) {
-      return rejectWithValue(error.message);
-    }
+  async (_, { dispatch }) => {
+    const unsub = onSnapshot(collection(db, "bookings"), (snap) => {
+      dispatch(setBookings(snap.docs.map((d) => ({ id: d.id, ...d.data() }))));
+    });
+    return unsub;
   }
 );
 
-/* ===================== SUBSCRIBE TO STUDENT BOOKINGS ===================== */
+/* ===================== SUBSCRIBE (STUDENT) ===================== */
 export const subscribeToStudentBookings = createAsyncThunk(
   "bookings/subscribeToStudentBookings",
-  async (registeredSubjects, { dispatch, rejectWithValue }) => {
-    try {
-      if (
-        !Array.isArray(registeredSubjects) ||
-        registeredSubjects.length === 0
-      ) {
-        dispatch(setBookings([]));
-        return null;
-      }
+  async (registeredSubjects, { dispatch }) => {
+    if (!Array.isArray(registeredSubjects) || !registeredSubjects.length) {
+      dispatch(setBookings([]));
+      return null;
+    }
 
-      const validSubjects = registeredSubjects.filter(
-        (sub) =>
-          sub?.subjectNumber !== undefined &&
-          sub?.subjectSubNumber !== undefined
+    const map = new Map();
+    const unsubs = [];
+
+    for (const s of registeredSubjects) {
+      const q = query(
+        collection(db, "bookings"),
+        where("subjectNumber", "==", s.subjectNumber),
+        where("subjectSubNumber", "==", s.subjectSubNumber),
+        where("status", "==", "approved")
       );
 
-      if (validSubjects.length === 0) {
-        dispatch(setBookings([]));
-        return null;
-      }
+      const unsub = onSnapshot(q, (snap) => {
+        snap.docs.forEach((d) => map.set(d.id, { id: d.id, ...d.data() }));
+        dispatch(setBookings(Array.from(map.values())));
+      });
 
-      const bookingsRef = collection(db, "bookings");
-      const unsubscribes = [];
-
-      // Create a Map to track unique bookings
-      const bookingsMap = new Map();
-
-      // Subscribe to each subject's bookings
-      for (const sub of validSubjects) {
-        const q = query(
-          bookingsRef,
-          where("subjectNumber", "==", sub.subjectNumber),
-          where("subjectSubNumber", "==", sub.subjectSubNumber),
-          where("status", "==", "approved")
-        );
-
-        const unsubscribe = onSnapshot(
-          q,
-          (snapshot) => {
-            snapshot.docs.forEach((doc) => {
-              bookingsMap.set(doc.id, { id: doc.id, ...doc.data() });
-            });
-
-            // Convert Map to array and update state
-            const bookings = Array.from(bookingsMap.values());
-            dispatch(setBookings(bookings));
-          },
-          (error) => {
-            dispatch(setError(error.message));
-          }
-        );
-
-        unsubscribes.push(unsubscribe);
-      }
-
-      // Return cleanup function
-      return () => {
-        unsubscribes.forEach((unsub) => unsub());
-      };
-    } catch (error) {
-      return rejectWithValue(error.message);
+      unsubs.push(unsub);
     }
+
+    return () => unsubs.forEach((u) => u());
   }
 );
 
-/* ===================== SUBSCRIBE TO TEACHER BOOKINGS ===================== */
+/* ===================== SUBSCRIBE (TEACHER) ===================== */
 export const subscribeToTeacherBookings = createAsyncThunk(
   "bookings/subscribeToTeacherBookings",
-  async (teacherId, { dispatch, rejectWithValue }) => {
-    try {
-      if (!teacherId) {
-        dispatch(setBookings([]));
-        return null;
-      }
-
-      const bookingsRef = collection(db, "bookings");
-      const q = query(bookingsRef, where("teacherId", "==", teacherId));
-
-      const unsubscribe = onSnapshot(
-        q,
-        (snapshot) => {
-          const bookings = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          }));
-          dispatch(setBookings(bookings));
-        },
-        (error) => {
-          dispatch(setError(error.message));
-        }
-      );
-
-      return unsubscribe;
-    } catch (error) {
-      return rejectWithValue(error.message);
+  async (teacherId, { dispatch }) => {
+    if (!teacherId) {
+      dispatch(setBookings([]));
+      return null;
     }
+
+    const q = query(
+      collection(db, "bookings"),
+      where("teacherId", "==", teacherId)
+    );
+
+    const unsub = onSnapshot(q, (snap) => {
+      dispatch(setBookings(snap.docs.map((d) => ({ id: d.id, ...d.data() }))));
+    });
+
+    return unsub;
   }
 );
 
-/* ===================== CREATE BOOKING ===================== */
+/* ===================== CREATE ===================== */
 export const createBooking = createAsyncThunk(
   "bookings/createBooking",
-  async (bookingData, { rejectWithValue, dispatch }) => {
+  async (data, { dispatch, rejectWithValue }) => {
     try {
-      if (!bookingData || typeof bookingData !== "object") {
-        return rejectWithValue("Invalid booking data");
-      }
-
-      // Check for conflicts before creating
-      const conflictCheck = await dispatch(
+      const conflict = await dispatch(
         checkBookingConflict({
-          classroom: bookingData.classroom,
-          date: bookingData.date,
-          startTime: bookingData.startTime,
-          endTime: bookingData.endTime,
+          classroom: data.classroom,
+          date: data.date,
+          startTime: data.startTime,
+          endTime: data.endTime,
         })
       ).unwrap();
 
-      if (conflictCheck.hasConflict) {
+      if (conflict.hasConflict) {
         return rejectWithValue("القاعة محجوزة");
       }
 
-      const bookingsRef = collection(db, "bookings");
-
-      const docRef = await addDoc(bookingsRef, {
-        ...bookingData,
+      const ref = await addDoc(collection(db, "bookings"), {
+        ...data,
         status: "pending",
         createdAt: Timestamp.now(),
       });
 
-      return {
-        id: docRef.id,
-        ...bookingData,
-        status: "pending",
-      };
-    } catch (error) {
-      return rejectWithValue(error.message || error);
+      return { id: ref.id, ...data, status: "pending" };
+    } catch (e) {
+      return rejectWithValue(e.message);
     }
   }
 );
 
-/* ===================== UPDATE BOOKING STATUS ===================== */
+/* ===================== UPDATE / DELETE ===================== */
 export const updateBookingStatus = createAsyncThunk(
   "bookings/updateBookingStatus",
   async ({ bookingId, status }, { rejectWithValue }) => {
     try {
-      if (!bookingId || !status) {
-        return rejectWithValue("Invalid booking update data");
-      }
-
-      const bookingRef = doc(db, "bookings", bookingId);
-
-      await updateDoc(bookingRef, {
+      await updateDoc(doc(db, "bookings", bookingId), {
         status,
         updatedAt: Timestamp.now(),
       });
-
       return { bookingId, status };
-    } catch (error) {
-      return rejectWithValue(error.message);
+    } catch (e) {
+      return rejectWithValue(e.message);
     }
   }
 );
 
-/* ===================== DELETE BOOKING ===================== */
 export const deleteBooking = createAsyncThunk(
   "bookings/deleteBooking",
   async (bookingId, { rejectWithValue }) => {
     try {
-      if (!bookingId) {
-        return rejectWithValue("Invalid booking id");
-      }
-
-      const bookingRef = doc(db, "bookings", bookingId);
-      await deleteDoc(bookingRef);
-
+      await deleteDoc(doc(db, "bookings", bookingId));
       return bookingId;
-    } catch (error) {
-      return rejectWithValue(error.message);
+    } catch (e) {
+      return rejectWithValue(e.message);
     }
   }
 );
 
 /* ===================== SLICE ===================== */
-const initialState = {
-  bookings: [],
-  loading: false,
-  error: null,
-  successMessage: null,
-  conflictCheck: null,
-  unsubscribe: null,
-};
-
 const bookingSlice = createSlice({
   name: "bookings",
-  initialState,
+  initialState: {
+    bookings: [],
+    loading: false,
+    error: null,
+    successMessage: null,
+    unsubscribe: null,
+  },
   reducers: {
-    clearMessages: (state) => {
-      state.error = null;
-      state.successMessage = null;
-      state.conflictCheck = null;
+    setBookings: (s, a) => {
+      s.bookings = a.payload;
+      s.loading = false;
     },
-    setBookings: (state, action) => {
-      state.bookings = action.payload;
-      state.loading = false;
+    setError: (s, a) => {
+      s.error = a.payload;
+      s.loading = false;
     },
-    setError: (state, action) => {
-      state.error = action.payload;
-      state.loading = false;
+    clearMessages: (s) => {
+      s.error = null;
+      s.successMessage = null;
     },
-    setUnsubscribe: (state, action) => {
-      state.unsubscribe = action.payload;
-    },
-    cleanup: (state) => {
-      if (state.unsubscribe) {
-        if (typeof state.unsubscribe === "function") {
-          state.unsubscribe();
-        }
-        state.unsubscribe = null;
-      }
+    cleanup: (s) => {
+      if (s.unsubscribe) s.unsubscribe();
+      s.unsubscribe = null;
     },
   },
-  extraReducers: (builder) => {
-    builder
-      // Conflict check handlers
-      .addCase(checkBookingConflict.pending, (state) => {
-        state.loading = true;
-        state.conflictCheck = null;
+  extraReducers: (b) => {
+    b.addCase(createBooking.pending, (s) => {
+      s.loading = true;
+    })
+      .addCase(createBooking.fulfilled, (s) => {
+        s.loading = false;
+        s.successMessage = "تم إنشاء الحجز بنجاح";
       })
-      .addCase(checkBookingConflict.fulfilled, (state, action) => {
-        state.loading = false;
-        state.conflictCheck = action.payload;
-      })
-      .addCase(checkBookingConflict.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
-      })
-      // Subscribe handlers
-      .addCase(subscribeToAllBookings.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(subscribeToAllBookings.fulfilled, (state, action) => {
-        state.loading = false;
-        state.unsubscribe = action.payload;
-      })
-      .addCase(subscribeToAllBookings.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
-      })
-      .addCase(subscribeToStudentBookings.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(subscribeToStudentBookings.fulfilled, (state, action) => {
-        state.loading = false;
-        state.unsubscribe = action.payload;
-      })
-      .addCase(subscribeToStudentBookings.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
-      })
-      .addCase(subscribeToTeacherBookings.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(subscribeToTeacherBookings.fulfilled, (state, action) => {
-        state.loading = false;
-        state.unsubscribe = action.payload;
-      })
-      .addCase(subscribeToTeacherBookings.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
-      })
-      // Create booking handlers
-      .addCase(createBooking.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(createBooking.fulfilled, (state) => {
-        state.loading = false;
-        state.successMessage = "تم إنشاء الحجز بنجاح";
-      })
-      .addCase(createBooking.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
-      })
-      // Update booking handlers
-      .addCase(updateBookingStatus.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(updateBookingStatus.fulfilled, (state) => {
-        state.loading = false;
-        state.successMessage = "تم تحديث الحجز بنجاح";
-      })
-      .addCase(updateBookingStatus.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
-      })
-      // Delete booking handlers
-      .addCase(deleteBooking.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(deleteBooking.fulfilled, (state) => {
-        state.loading = false;
-        state.successMessage = "تم حذف الحجز بنجاح";
-      })
-      .addCase(deleteBooking.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
+      .addCase(createBooking.rejected, (s, a) => {
+        s.loading = false;
+        s.error = a.payload;
       });
   },
 });
 
-export const { clearMessages, setBookings, setError, setUnsubscribe, cleanup } =
+export const { setBookings, setError, clearMessages, cleanup } =
   bookingSlice.actions;
+
+/* ===================== SELECTOR ===================== */
+export const selectBusySlots = (state, classroomId, date) =>
+  state.bookings.bookings.filter(
+    (b) =>
+      (b.classroomId === classroomId || b.classroom === classroomId) &&
+      b.date === date &&
+      (b.status === "approved" || b.status === "pending")
+  );
+
 export default bookingSlice.reducer;

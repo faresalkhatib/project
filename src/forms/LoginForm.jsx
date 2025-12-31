@@ -148,15 +148,6 @@ const LoginForm = () => {
         أو
       </Divider>
 
-      <Button
-        icon="google"
-        content="تسجيل الدخول باستخدام Google"
-        onClick={handleGoogleLogin}
-        loading={loading}
-        disabled={loading}
-        style={googleButtonStyle}
-      />
-
       <div style={linkStyle} onClick={() => navigate("/register")}>
         ليس لديك حساب؟ سجل الآن
       </div>

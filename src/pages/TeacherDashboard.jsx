@@ -15,6 +15,7 @@ import Footer from "../components/Footer";
 import Table from "../components/Table";
 import BookingForm from "../forms/BookingForm";
 import ConfirmModal from "../modals/ConfirmModal";
+import TeacherSubjectsManager from "../components/TeacherSubjectsManager";
 import {
   subscribeToTeacherBookings,
   createBooking,
@@ -37,6 +38,9 @@ const TeacherDashboard = () => {
   );
   const { classrooms, loading: classroomsLoading } = useSelector(
     (state) => state.classrooms
+  );
+  const { subjects: enrolledSubjects } = useSelector(
+    (state) => state.teacherSubjects
   );
 
   const [showBookingForm, setShowBookingForm] = useState(false);
@@ -346,7 +350,7 @@ const TeacherDashboard = () => {
                       color: "rgba(255,255,255,0.9)",
                       fontSize: "2rem",
                       marginBottom: "0.8rem",
-                      marginleft: "0.5rem",
+                      marginLeft: "0.5rem",
                     }}
                   />
                   <div
@@ -402,6 +406,9 @@ const TeacherDashboard = () => {
               {successMessage}
             </Message>
           )}
+
+          {/* NEW: Teacher Subjects Manager */}
+          <TeacherSubjectsManager teacherId={user?.uid} />
 
           {/* Create Booking Section */}
           <div
@@ -487,6 +494,7 @@ const TeacherDashboard = () => {
                     dispatch(clearMessages());
                   }
                 }}
+                disabled={enrolledSubjects.length === 0}
               >
                 <Icon
                   style={{ marginRight: "0.5rem", marginLeft: "0.5rem" }}
@@ -496,7 +504,21 @@ const TeacherDashboard = () => {
               </Button>
             </div>
 
-            {showBookingForm && (
+            {enrolledSubjects.length === 0 && (
+              <Message
+                warning
+                style={{
+                  textAlign: "center",
+                  borderRadius: "12px",
+                  marginTop: "1rem",
+                }}
+              >
+                <Icon name="warning sign" />
+                يجب عليك إضافة المواد التي تدرسها أولاً قبل إنشاء حجوزات
+              </Message>
+            )}
+
+            {showBookingForm && enrolledSubjects.length > 0 && (
               <div
                 style={{
                   padding: "clamp(1rem, 2.5vw, 1.5rem)",
@@ -517,6 +539,7 @@ const TeacherDashboard = () => {
                     loading={loading}
                     classrooms={classrooms}
                     teacherInfo={user}
+                    enrolledSubjects={enrolledSubjects}
                     error={error}
                   />
                 )}

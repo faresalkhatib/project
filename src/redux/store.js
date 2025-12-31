@@ -15,6 +15,7 @@ import userReducer from "./userSlice";
 import bookingReducer from "./bookingSlice";
 import classroomReducer from "./classroomSlice";
 import modalReducer from "./modalSlice";
+import teacherSubjectsReducer from "./teacherSubjectsSlice";
 
 const userPersistConfig = {
   key: "user",
@@ -27,6 +28,7 @@ const rootReducer = combineReducers({
   bookings: bookingReducer,
   classrooms: classroomReducer,
   modals: modalReducer,
+  teacherSubjects: teacherSubjectsReducer,
 });
 
 const store = configureStore({
