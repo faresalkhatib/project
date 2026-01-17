@@ -8,10 +8,12 @@ import Footer from "../components/Footer";
 import RegistrationForm from "../forms/RegistrationForm";
 import { clearError } from "../redux/userSlice";
 import { COLORS, SPACING, SHADOWS } from "../utils/designConstants";
+import { useTranslation } from "react-i18next";
 
 const RegisterPage = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const { t, i18n } = useTranslation();
   const { user, isAuthenticated, error } = useSelector((state) => state.user);
 
   useEffect(() => {
@@ -42,7 +44,7 @@ const RegisterPage = () => {
     minHeight: "80vh",
     paddingTop: SPACING.xxl,
     paddingBottom: SPACING.xxl,
-    direction: "rtl",
+    direction: i18n.language === "ar" ? "rtl" : "ltr",
   };
 
   const segmentStyle = {
@@ -66,7 +68,7 @@ const RegisterPage = () => {
         <Grid centered>
           <Grid.Column mobile={16} tablet={10} computer={8}>
             <Segment style={segmentStyle}>
-              <h2 style={titleStyle}>إنشاء حساب جديد</h2>
+              <h2 style={titleStyle}>{t("register")}</h2>
 
               {error && (
                 <Message

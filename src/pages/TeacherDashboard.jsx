@@ -10,6 +10,7 @@ import {
   Icon,
   Label,
 } from "semantic-ui-react";
+import { useTranslation } from "react-i18next";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import Table from "../components/Table";
@@ -32,6 +33,9 @@ import { COLORS, SPACING } from "../utils/designConstants";
 const TeacherDashboard = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
+  const isRTL = i18n.language === "ar";
+
   const { user, isAuthenticated } = useSelector((state) => state.user);
   const { bookings, loading, error, successMessage } = useSelector(
     (state) => state.bookings
@@ -115,32 +119,34 @@ const TeacherDashboard = () => {
 
   // Table columns
   const columns = [
-    { header: "المادة", accessor: "subjectName" },
-    { header: "رقم المادة", accessor: "subjectNumber" },
-    { header: "الشعبة", accessor: "subjectSubNumber" },
-    { header: "القاعة", accessor: "classroomName" },
+    { header: t("subject"), accessor: "subjectName" },
+    { header: t("subject_number"), accessor: "subjectNumber" },
+    { header: t("sub_group"), accessor: "subjectSubNumber" },
+    { header: t("classroom"), accessor: "classroomName" },
     {
-      header: "التاريخ",
+      header: t("date"),
       accessor: "date",
       render: (row) => {
         if (row.date?.toDate) {
-          return row.date.toDate().toLocaleDateString("ar-JO");
+          return row.date
+            .toDate()
+            .toLocaleDateString(isRTL ? "ar-JO" : "en-US");
         }
         return row.date || "-";
       },
     },
     {
-      header: "وقت البداية",
+      header: t("start_time"),
       accessor: "startTime",
       render: (row) => row.startTime || "-",
     },
     {
-      header: "وقت النهاية",
+      header: t("end_time"),
       accessor: "endTime",
       render: (row) => row.endTime || "-",
     },
     {
-      header: "الحالة",
+      header: t("status"),
       accessor: "status",
       render: (row) => {
         const statusColors = {
@@ -148,14 +154,12 @@ const TeacherDashboard = () => {
           approved: "green",
           rejected: "red",
         };
-        const statusText = {
-          pending: "قيد الانتظار",
-          approved: "مقبول",
-          rejected: "مرفوض",
-        };
         return (
-          <Label color={statusColors[row.status]} style={{ direction: "rtl" }}>
-            {statusText[row.status]}
+          <Label
+            color={statusColors[row.status]}
+            style={{ direction: isRTL ? "rtl" : "ltr" }}
+          >
+            {t(`status_${row.status}`)}
           </Label>
         );
       },
@@ -170,12 +174,14 @@ const TeacherDashboard = () => {
           size="small"
           negative
           onClick={() => handleDeleteBooking(row.id)}
-          title="حذف"
+          title={t("delete")}
         />
       )}
       {row.status !== "pending" && (
         <span style={{ color: COLORS.textSecondary, fontSize: "12px" }}>
-          {row.status === "approved" ? "تمت الموافقة" : "تم الرفض"}
+          {row.status === "approved"
+            ? t("booking_approved")
+            : t("booking_rejected")}
         </span>
       )}
     </div>
@@ -187,7 +193,7 @@ const TeacherDashboard = () => {
         minHeight: "100vh",
         display: "flex",
         flexDirection: "column",
-        direction: "rtl",
+        direction: isRTL ? "rtl" : "ltr",
         backgroundColor: "#f8f9fa",
       }}
     >
@@ -223,7 +229,7 @@ const TeacherDashboard = () => {
               style={{
                 position: "absolute",
                 top: "-50px",
-                right: "-50px",
+                [isRTL ? "right" : "left"]: "-50px",
                 width: "200px",
                 height: "200px",
                 borderRadius: "50%",
@@ -235,7 +241,7 @@ const TeacherDashboard = () => {
               style={{
                 position: "absolute",
                 bottom: "-80px",
-                left: "-80px",
+                [isRTL ? "left" : "right"]: "-80px",
                 width: "250px",
                 height: "250px",
                 borderRadius: "50%",
@@ -254,7 +260,7 @@ const TeacherDashboard = () => {
                   textShadow: "0 2px 10px rgba(0,0,0,0.2)",
                 }}
               >
-                مرحباً د. {user?.name} 👨‍🏫
+                {t("welcome_teacher", { name: user?.name })} 👨‍🏫
               </h1>
               <p
                 style={{
@@ -264,7 +270,7 @@ const TeacherDashboard = () => {
                   fontWeight: "300",
                 }}
               >
-                إدارة حجوزات قاعات الامتحانات
+                {t("teacher_dashboard_subtitle")}
               </p>
             </div>
           </div>
@@ -280,28 +286,28 @@ const TeacherDashboard = () => {
           >
             {[
               {
-                label: "إجمالي الحجوزات",
+                label: t("total_bookings"),
                 value: stats.total,
                 color: COLORS.primaryRed,
                 icon: "calendar check",
                 gradient: "linear-gradient(135deg, #8B0000, #c41e3a)",
               },
               {
-                label: "قيد الانتظار",
+                label: t("pending"),
                 value: stats.pending,
                 color: "#f39c12",
                 icon: "clock outline",
                 gradient: "linear-gradient(135deg, #f39c12, #f9ca24)",
               },
               {
-                label: "مقبولة",
+                label: t("approved"),
                 value: stats.approved,
                 color: "#27ae60",
                 icon: "check circle",
                 gradient: "linear-gradient(135deg, #27ae60, #2ecc71)",
               },
               {
-                label: "مرفوضة",
+                label: t("rejected"),
                 value: stats.rejected,
                 color: "#e74c3c",
                 icon: "times circle",
@@ -335,7 +341,7 @@ const TeacherDashboard = () => {
                   style={{
                     position: "absolute",
                     top: "-20px",
-                    right: "-20px",
+                    [isRTL ? "right" : "left"]: "-20px",
                     width: "100px",
                     height: "100px",
                     borderRadius: "50%",
@@ -350,7 +356,7 @@ const TeacherDashboard = () => {
                       color: "rgba(255,255,255,0.9)",
                       fontSize: "2rem",
                       marginBottom: "0.8rem",
-                      marginLeft: "0.5rem",
+                      [isRTL ? "marginLeft" : "marginRight"]: "0.5rem",
                     }}
                   />
                   <div
@@ -463,7 +469,7 @@ const TeacherDashboard = () => {
                     fontWeight: "700",
                   }}
                 >
-                  إنشاء حجز جديد
+                  {t("create_new_booking")}
                 </h3>
               </div>
               <Button
@@ -497,10 +503,13 @@ const TeacherDashboard = () => {
                 disabled={enrolledSubjects.length === 0}
               >
                 <Icon
-                  style={{ marginRight: "0.5rem", marginLeft: "0.5rem" }}
+                  style={{
+                    [isRTL ? "marginLeft" : "marginRight"]: "0.5rem",
+                    [isRTL ? "marginRight" : "marginLeft"]: "0.5rem",
+                  }}
                   name={showBookingForm ? "minus" : "plus"}
                 />
-                {showBookingForm ? "إخفاء" : "إضافة حجز "}
+                {showBookingForm ? t("hide_form") : t("add_booking")}
               </Button>
             </div>
 
@@ -514,7 +523,7 @@ const TeacherDashboard = () => {
                 }}
               >
                 <Icon name="warning sign" />
-                يجب عليك إضافة المواد التي تدرسها أولاً قبل إنشاء حجوزات
+                {t("add_subjects_first_warning")}
               </Message>
             )}
 
@@ -530,7 +539,7 @@ const TeacherDashboard = () => {
                 {classroomsLoading ? (
                   <div style={{ textAlign: "center", padding: "2rem" }}>
                     <Loader active inline="centered">
-                      جاري تحميل القاعات...
+                      {t("loading_classrooms")}
                     </Loader>
                   </div>
                 ) : (
@@ -596,7 +605,7 @@ const TeacherDashboard = () => {
                     margin: 0,
                   }}
                 >
-                  حجوزاتي
+                  {t("my_bookings")}
                 </h2>
               </div>
             </div>
@@ -609,7 +618,7 @@ const TeacherDashboard = () => {
                 }}
               >
                 <Loader active inline="centered" size="large">
-                  جاري التحميل...
+                  {t("loading")}
                 </Loader>
               </div>
             ) : bookings.length === 0 ? (
@@ -638,7 +647,7 @@ const TeacherDashboard = () => {
                     margin: 0,
                   }}
                 >
-                  لا توجد حجوزات حالياً. اضغط على "إضافة حجز" للبدء.
+                  {t("no_bookings_yet")}
                 </p>
               </div>
             ) : (
@@ -661,8 +670,8 @@ const TeacherDashboard = () => {
         open={confirmModal.open}
         onClose={() => setConfirmModal({ open: false, bookingId: null })}
         onConfirm={handleConfirmDelete}
-        title="حذف الحجز"
-        message='هل أنت متأكد من حذف هذا الحجز؟ يمكنك حذف الحجوزات التي في حالة "قيد الانتظار" فقط.'
+        title={t("delete_booking")}
+        message={t("delete_booking_confirm_msg")}
         loading={loading}
       />
 

@@ -18,8 +18,12 @@ import {
 } from "../redux/teacherSubjectsSlice";
 import ConfirmModal from "../modals/ConfirmModal";
 import { COLORS, SPACING } from "../utils/designConstants";
+import { useTranslation } from "react-i18next";
 
 const TeacherSubjectsManager = ({ teacherId }) => {
+  const { t, i18n } = useTranslation();
+  const isRTL = i18n.language === "ar";
+
   const dispatch = useDispatch();
   const { subjects, loading, error, successMessage } = useSelector(
     (state) => state.teacherSubjects
@@ -99,8 +103,8 @@ const TeacherSubjectsManager = ({ teacherId }) => {
   };
 
   const inputStyle = {
-    direction: "rtl",
-    textAlign: "right",
+    direction: isRTL ? "rtl" : "ltr",
+    textAlign: isRTL ? "right" : "left",
   };
 
   return (
@@ -112,6 +116,7 @@ const TeacherSubjectsManager = ({ teacherId }) => {
         marginBottom: "clamp(1.5rem, 3vw, 2rem)",
         boxShadow: "0 5px 25px rgba(0,0,0,0.08)",
         border: "1px solid rgba(0,0,0,0.05)",
+        direction: isRTL ? "rtl" : "ltr",
       }}
     >
       {/* Header */}
@@ -155,7 +160,7 @@ const TeacherSubjectsManager = ({ teacherId }) => {
               fontWeight: "700",
             }}
           >
-            المواد المسجلة للتدريس
+            {t("registered_teaching_subjects")}
           </h3>
         </div>
         <Button
@@ -176,7 +181,7 @@ const TeacherSubjectsManager = ({ teacherId }) => {
           }}
         >
           <Icon name={showAddForm ? "minus" : "plus"} />
-          {showAddForm ? "إخفاء" : "إضافة مادة"}
+          {showAddForm ? t("hide") : t("add_subject")}
         </Button>
       </div>
 
@@ -220,13 +225,18 @@ const TeacherSubjectsManager = ({ teacherId }) => {
         >
           <Form onSubmit={handleAddSubject}>
             <Form.Field required>
-              <label style={{ textAlign: "right", color: COLORS.textPrimary }}>
-                رقم المادة
+              <label
+                style={{
+                  textAlign: isRTL ? "right" : "left",
+                  color: COLORS.textPrimary,
+                }}
+              >
+                {t("subject_number_label")}
               </label>
               <input
                 type="text"
                 name="subjectNumber"
-                placeholder="مثال: CS101"
+                placeholder={t("subject_number_example")}
                 value={formData.subjectNumber}
                 onChange={handleInputChange}
                 style={inputStyle}
@@ -235,13 +245,18 @@ const TeacherSubjectsManager = ({ teacherId }) => {
             </Form.Field>
 
             <Form.Field required>
-              <label style={{ textAlign: "right", color: COLORS.textPrimary }}>
-                اسم المادة
+              <label
+                style={{
+                  textAlign: isRTL ? "right" : "left",
+                  color: COLORS.textPrimary,
+                }}
+              >
+                {t("subject_name_label")}
               </label>
               <input
                 type="text"
                 name="subjectName"
-                placeholder="مثال: مقدمة في علوم الحاسوب"
+                placeholder={t("subject_name_example")}
                 value={formData.subjectName}
                 onChange={handleInputChange}
                 style={inputStyle}
@@ -250,13 +265,18 @@ const TeacherSubjectsManager = ({ teacherId }) => {
             </Form.Field>
 
             <Form.Field>
-              <label style={{ textAlign: "right", color: COLORS.textPrimary }}>
-                الشعبة
+              <label
+                style={{
+                  textAlign: isRTL ? "right" : "left",
+                  color: COLORS.textPrimary,
+                }}
+              >
+                {t("sub_group_label")}
               </label>
               <input
                 type="text"
                 name="subjectSubNumber"
-                placeholder="مثال: 1"
+                placeholder={t("sub_group_example")}
                 value={formData.subjectSubNumber}
                 onChange={handleInputChange}
                 style={inputStyle}
@@ -273,7 +293,7 @@ const TeacherSubjectsManager = ({ teacherId }) => {
                 marginTop: SPACING.md,
               }}
             >
-              إضافة المادة
+              {t("add_subject_button")}
             </Button>
           </Form>
         </div>
@@ -283,7 +303,7 @@ const TeacherSubjectsManager = ({ teacherId }) => {
       {loading && !showAddForm ? (
         <div style={{ textAlign: "center", padding: "2rem" }}>
           <Loader active inline="centered">
-            جاري التحميل...
+            {t("loading")}
           </Loader>
         </div>
       ) : subjects.length === 0 ? (
@@ -312,17 +332,19 @@ const TeacherSubjectsManager = ({ teacherId }) => {
               margin: 0,
             }}
           >
-            لا توجد مواد مسجلة. اضغط على "إضافة مادة" للبدء.
+            {t("no_subjects_registered")}
           </p>
         </div>
       ) : (
-        <Table celled striped style={{ direction: "rtl" }}>
+        <Table celled striped style={{ direction: isRTL ? "rtl" : "ltr" }}>
           <Table.Header>
             <Table.Row>
-              <Table.HeaderCell>رقم المادة</Table.HeaderCell>
-              <Table.HeaderCell>اسم المادة</Table.HeaderCell>
-              <Table.HeaderCell>الشعبة</Table.HeaderCell>
-              <Table.HeaderCell textAlign="center">الإجراءات</Table.HeaderCell>
+              <Table.HeaderCell>{t("subject_number")}</Table.HeaderCell>
+              <Table.HeaderCell>{t("subject")}</Table.HeaderCell>
+              <Table.HeaderCell>{t("sub_group")}</Table.HeaderCell>
+              <Table.HeaderCell textAlign="center">
+                {t("subject_actions")}
+              </Table.HeaderCell>
             </Table.Row>
           </Table.Header>
 
@@ -334,7 +356,7 @@ const TeacherSubjectsManager = ({ teacherId }) => {
                 </Table.Cell>
                 <Table.Cell>{subject.subjectName}</Table.Cell>
                 <Table.Cell>
-                  {subject.subjectSubNumber || "غير محدد"}
+                  {subject.subjectSubNumber || t("not_specified")}
                 </Table.Cell>
                 <Table.Cell textAlign="center">
                   <Button
@@ -342,7 +364,7 @@ const TeacherSubjectsManager = ({ teacherId }) => {
                     size="small"
                     negative
                     onClick={() => handleRemoveSubject(subject)}
-                    title="حذف المادة"
+                    title={t("delete_subject")}
                   >
                     <Icon name="trash" />
                   </Button>
@@ -358,8 +380,8 @@ const TeacherSubjectsManager = ({ teacherId }) => {
         open={confirmModal.open}
         onClose={() => setConfirmModal({ open: false, subject: null })}
         onConfirm={handleConfirmRemove}
-        title="حذف المادة"
-        message="هل أنت متأكد من حذف هذه المادة؟ لن تتمكن من إنشاء حجوزات لهذه المادة بعد الحذف."
+        title={t("delete_subject_title")}
+        message={t("delete_subject_message")}
         loading={loading}
       />
     </div>

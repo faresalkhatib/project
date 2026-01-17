@@ -1,12 +1,15 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Container, Button, Grid, Icon } from "semantic-ui-react";
+import { useTranslation } from "react-i18next";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { COLORS, SPACING, SHADOWS } from "../utils/designConstants";
 
 const HomePage = () => {
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
+  const isRTL = i18n.language === "ar";
 
   return (
     <div
@@ -14,7 +17,7 @@ const HomePage = () => {
         minHeight: "100vh",
         display: "flex",
         flexDirection: "column",
-        direction: "rtl",
+        direction: isRTL ? "rtl" : "ltr",
       }}
     >
       {/* Header with proper spacing */}
@@ -72,7 +75,7 @@ const HomePage = () => {
                   textShadow: "0 2px 20px rgba(0,0,0,0.2)",
                 }}
               >
-                نظام حجز قاعات الامتحانات
+                {t("hero_title")}
               </h1>
 
               <p
@@ -84,7 +87,7 @@ const HomePage = () => {
                   lineHeight: 1.6,
                 }}
               >
-                جامعة مؤتة - إدارة الامتحانات بكل سهولة وفعالية
+                {t("hero_subtitle")}
               </p>
 
               <Button
@@ -111,8 +114,11 @@ const HomePage = () => {
                 }}
                 onClick={() => navigate("/login")}
               >
-                تسجيل الدخول
-                <Icon name="arrow left" style={{ marginLEft: "0.8rem" }} />
+                {t("login")}
+                <Icon
+                  name={isRTL ? "arrow left" : "arrow right"}
+                  style={{ [isRTL ? "marginRight" : "marginLeft"]: "0.8rem" }}
+                />
               </Button>
             </div>
           </Container>
@@ -134,7 +140,7 @@ const HomePage = () => {
               marginBottom: "clamp(2rem, 5vw, 4rem)",
             }}
           >
-            الخدمات المتاحة
+            {t("features_title")}
           </h2>
 
           <Grid columns={3} stackable style={{ margin: 0 }}>
@@ -195,7 +201,7 @@ const HomePage = () => {
                     marginBottom: "1rem",
                   }}
                 >
-                  الطلاب
+                  {t("feature_students_title")}
                 </h3>
 
                 <p
@@ -205,7 +211,7 @@ const HomePage = () => {
                     lineHeight: 1.7,
                   }}
                 >
-                  عرض جدول الامتحانات والمواد المسجلة بطريقة واضحة ومنظمة
+                  {t("feature_students_desc")}
                 </p>
               </div>
             </Grid.Column>
@@ -267,7 +273,7 @@ const HomePage = () => {
                     marginBottom: "1rem",
                   }}
                 >
-                  المدرسون
+                  {t("feature_teachers_title")}
                 </h3>
 
                 <p
@@ -277,7 +283,7 @@ const HomePage = () => {
                     lineHeight: 1.7,
                   }}
                 >
-                  حجز القاعات للامتحانات وإدارة الحجوزات بكل مرونة
+                  {t("feature_teachers_desc")}
                 </p>
               </div>
             </Grid.Column>
@@ -339,7 +345,7 @@ const HomePage = () => {
                     marginBottom: "1rem",
                   }}
                 >
-                  الإدارة
+                  {t("feature_admin_title")}
                 </h3>
 
                 <p
@@ -349,7 +355,7 @@ const HomePage = () => {
                     lineHeight: 1.7,
                   }}
                 >
-                  الموافقة على الحجوزات وإدارة القاعات بكفاءة عالية
+                  {t("feature_admin_desc")}
                 </p>
               </div>
             </Grid.Column>

@@ -8,14 +8,15 @@ import Footer from "../components/Footer";
 import LoginForm from "../forms/LoginForm";
 import { clearError } from "../redux/userSlice";
 import { COLORS, SPACING, SHADOWS } from "../utils/designConstants";
+import { useTranslation } from "react-i18next";
 
 const LoginPage = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const { t, i18n } = useTranslation();
   const { user, isAuthenticated, error } = useSelector((state) => state.user);
 
   useEffect(() => {
-    // Redirect based on role if already authenticated
     if (isAuthenticated && user) {
       switch (user.role) {
         case "student":
@@ -34,7 +35,6 @@ const LoginPage = () => {
   }, [isAuthenticated, user, navigate]);
 
   useEffect(() => {
-    // Clear any errors when component unmounts
     return () => {
       dispatch(clearError());
     };
@@ -44,7 +44,7 @@ const LoginPage = () => {
     minHeight: "80vh",
     paddingTop: SPACING.xxl,
     paddingBottom: SPACING.xxl,
-    direction: "rtl",
+    direction: i18n.language === "ar" ? "rtl" : "ltr",
   };
 
   const segmentStyle = {
@@ -68,7 +68,7 @@ const LoginPage = () => {
         <Grid centered>
           <Grid.Column mobile={16} tablet={10} computer={8}>
             <Segment style={segmentStyle}>
-              <h2 style={titleStyle}>تسجيل الدخول</h2>
+              <h2 style={titleStyle}>{t("login")}</h2>
 
               {error && (
                 <Message

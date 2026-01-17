@@ -1,4 +1,4 @@
-// src/forms/LoginForm.js - UPDATE
+// src/forms/LoginForm.js
 import React from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Formik } from "formik";
@@ -7,32 +7,28 @@ import { Form, Button, Divider } from "semantic-ui-react";
 import { useNavigate } from "react-router-dom";
 import { loginUser, loginWithGoogle } from "../redux/userSlice";
 import { COLORS, SPACING } from "../utils/designConstants";
+import { useTranslation } from "react-i18next";
 
 const LoginForm = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { loading } = useSelector((state) => state.user);
+  const { t, i18n } = useTranslation();
 
   const validationSchema = Yup.object({
-    email: Yup.string()
-      .email("البريد الإلكتروني غير صحيح")
-      .required("البريد الإلكتروني مطلوب"),
+    email: Yup.string().email(t("invalid_email")).required(t("email_required")),
     password: Yup.string()
-      .min(6, "كلمة المرور يجب أن تكون 6 أحرف على الأقل")
-      .required("كلمة المرور مطلوبة"),
+      .min(6, t("password_min"))
+      .required(t("password_required")),
   });
 
   const handleSubmit = (values) => {
     dispatch(loginUser(values));
   };
 
-  const handleGoogleLogin = () => {
-    dispatch(loginWithGoogle());
-  };
-
   const inputStyle = {
-    direction: "rtl",
-    textAlign: "right",
+    direction: i18n.language === "ar" ? "rtl" : "ltr",
+    textAlign: i18n.language === "ar" ? "right" : "left",
   };
 
   const buttonStyle = {
@@ -44,15 +40,6 @@ const LoginForm = () => {
     marginTop: SPACING.md,
   };
 
-  const googleButtonStyle = {
-    backgroundColor: COLORS.bgLight,
-    color: COLORS.textPrimary,
-    width: "100%",
-    padding: SPACING.md,
-    fontSize: "16px",
-    border: `2px solid ${COLORS.border}`,
-  };
-
   const linkStyle = {
     textAlign: "center",
     marginTop: SPACING.md,
@@ -62,96 +49,104 @@ const LoginForm = () => {
   };
 
   return (
-    <>
-      <Formik
-        initialValues={{ email: "", password: "" }}
-        validationSchema={validationSchema}
-        onSubmit={handleSubmit}
-      >
-        {({
-          values,
-          errors,
-          touched,
-          handleChange,
-          handleBlur,
-          handleSubmit,
-        }) => (
-          <Form onSubmit={handleSubmit}>
-            <Form.Field error={touched.email && !!errors.email}>
-              <label style={{ textAlign: "right", color: COLORS.textPrimary }}>
-                البريد الإلكتروني
-              </label>
-              <input
-                type="email"
-                name="email"
-                placeholder="example@mutah.edu.jo"
-                value={values.email}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                style={inputStyle}
-              />
-              {touched.email && errors.email && (
-                <div
-                  style={{
-                    color: COLORS.error,
-                    textAlign: "right",
-                    marginTop: SPACING.xs,
-                  }}
-                >
-                  {errors.email}
-                </div>
-              )}
-            </Form.Field>
-
-            <Form.Field error={touched.password && !!errors.password}>
-              <label style={{ textAlign: "right", color: COLORS.textPrimary }}>
-                كلمة المرور
-              </label>
-              <input
-                type="password"
-                name="password"
-                placeholder="••••••••"
-                value={values.password}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                style={inputStyle}
-              />
-              {touched.password && errors.password && (
-                <div
-                  style={{
-                    color: COLORS.error,
-                    textAlign: "right",
-                    marginTop: SPACING.xs,
-                  }}
-                >
-                  {errors.password}
-                </div>
-              )}
-            </Form.Field>
-
-            <Button
-              type="submit"
-              loading={loading}
-              disabled={loading}
-              style={buttonStyle}
+    <Formik
+      initialValues={{ email: "", password: "" }}
+      validationSchema={validationSchema}
+      onSubmit={handleSubmit}
+    >
+      {({
+        values,
+        errors,
+        touched,
+        handleChange,
+        handleBlur,
+        handleSubmit,
+      }) => (
+        <Form onSubmit={handleSubmit}>
+          <Form.Field error={touched.email && !!errors.email}>
+            <label
+              style={{
+                textAlign: i18n.language === "ar" ? "right" : "left",
+                color: COLORS.textPrimary,
+              }}
             >
-              دخول
-            </Button>
-          </Form>
-        )}
-      </Formik>
+              {t("email")}
+            </label>
+            <input
+              type="email"
+              name="email"
+              placeholder={t("email_placeholder")}
+              value={values.email}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              style={inputStyle}
+            />
+            {touched.email && errors.email && (
+              <div
+                style={{
+                  color: COLORS.error,
+                  textAlign: i18n.language === "ar" ? "right" : "left",
+                  marginTop: SPACING.xs,
+                }}
+              >
+                {errors.email}
+              </div>
+            )}
+          </Form.Field>
 
-      <Divider
-        horizontal
-        style={{ margin: `${SPACING.lg} 0`, color: COLORS.textSecondary }}
-      >
-        أو
-      </Divider>
+          <Form.Field error={touched.password && !!errors.password}>
+            <label
+              style={{
+                textAlign: i18n.language === "ar" ? "right" : "left",
+                color: COLORS.textPrimary,
+              }}
+            >
+              {t("password")}
+            </label>
+            <input
+              type="password"
+              name="password"
+              placeholder="••••••••"
+              value={values.password}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              style={inputStyle}
+            />
+            {touched.password && errors.password && (
+              <div
+                style={{
+                  color: COLORS.error,
+                  textAlign: i18n.language === "ar" ? "right" : "left",
+                  marginTop: SPACING.xs,
+                }}
+              >
+                {errors.password}
+              </div>
+            )}
+          </Form.Field>
 
-      <div style={linkStyle} onClick={() => navigate("/register")}>
-        ليس لديك حساب؟ سجل الآن
-      </div>
-    </>
+          <Button
+            type="submit"
+            loading={loading}
+            disabled={loading}
+            style={buttonStyle}
+          >
+            {t("login")}
+          </Button>
+
+          <Divider
+            horizontal
+            style={{ margin: `${SPACING.lg} 0`, color: COLORS.textSecondary }}
+          >
+            {t("or")}
+          </Divider>
+
+          <div style={linkStyle} onClick={() => navigate("/register")}>
+            {t("no_account_register")}
+          </div>
+        </Form>
+      )}
+    </Formik>
   );
 };
 

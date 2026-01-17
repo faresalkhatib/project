@@ -4,16 +4,20 @@ import { Formik } from "formik";
 import * as Yup from "yup";
 import { Form, Button } from "semantic-ui-react";
 import { COLORS, SPACING } from "../utils/designConstants";
+import { useTranslation } from "react-i18next";
 
 const AddSubjectForm = ({ onSubmit, loading }) => {
+  const { t, i18n } = useTranslation();
+  const isRTL = i18n.language === "ar";
+
   const validationSchema = Yup.object({
-    subjectNumber: Yup.string().required("رقم المادة مطلوب"),
-    subjectName: Yup.string().required("اسم المادة مطلوب"),
+    subjectNumber: Yup.string().required(t("subject_number_required")),
+    subjectName: Yup.string().required(t("subject_name_required")),
   });
 
   const inputStyle = {
-    direction: "rtl",
-    textAlign: "right",
+    direction: isRTL ? "rtl" : "ltr",
+    textAlign: isRTL ? "right" : "left",
   };
 
   const buttonStyle = {
@@ -49,7 +53,7 @@ const AddSubjectForm = ({ onSubmit, loading }) => {
               <input
                 type="text"
                 name="subjectNumber"
-                placeholder="رقم المادة (مثال: CS101)"
+                placeholder={t("subject_number_placeholder")}
                 value={values.subjectNumber}
                 onChange={handleChange}
                 onBlur={handleBlur}
@@ -59,7 +63,7 @@ const AddSubjectForm = ({ onSubmit, loading }) => {
                 <div
                   style={{
                     color: COLORS.error,
-                    textAlign: "right",
+                    textAlign: isRTL ? "right" : "left",
                     marginTop: SPACING.xs,
                   }}
                 >
@@ -73,7 +77,7 @@ const AddSubjectForm = ({ onSubmit, loading }) => {
               <input
                 type="number"
                 name="subjectSubNumber"
-                placeholder="مثال:شعبه 1"
+                placeholder={t("sub_group_placeholder")}
                 value={values.subjectSubNumber}
                 onChange={handleChange}
                 onBlur={handleBlur}
@@ -83,7 +87,7 @@ const AddSubjectForm = ({ onSubmit, loading }) => {
                 <div
                   style={{
                     color: COLORS.error,
-                    textAlign: "right",
+                    textAlign: isRTL ? "right" : "left",
                     marginTop: SPACING.xs,
                   }}
                 >
@@ -96,7 +100,7 @@ const AddSubjectForm = ({ onSubmit, loading }) => {
               <input
                 type="text"
                 name="subjectName"
-                placeholder="اسم المادة"
+                placeholder={t("subject_name_placeholder")}
                 value={values.subjectName}
                 onChange={handleChange}
                 onBlur={handleBlur}
@@ -106,7 +110,7 @@ const AddSubjectForm = ({ onSubmit, loading }) => {
                 <div
                   style={{
                     color: COLORS.error,
-                    textAlign: "right",
+                    textAlign: isRTL ? "right" : "left",
                     marginTop: SPACING.xs,
                   }}
                 >
@@ -122,7 +126,7 @@ const AddSubjectForm = ({ onSubmit, loading }) => {
                 disabled={loading}
                 style={buttonStyle}
               >
-                إضافة
+                {t("add")}
               </Button>
             </Form.Field>
           </Form.Group>

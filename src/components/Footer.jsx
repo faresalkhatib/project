@@ -2,14 +2,19 @@
 import React from "react";
 import { Segment, Container, Grid, Icon } from "semantic-ui-react";
 import { COLORS, SPACING } from "../utils/designConstants";
+import { useTranslation } from "react-i18next";
 
 const Footer = () => {
+  const { t, i18n } = useTranslation();
+  const isRTL = i18n.language === "ar";
+
   const footerStyle = {
     backgroundColor: COLORS.darkRed,
     color: COLORS.textWhite,
     padding: `${SPACING.xl} 0`,
     marginTop: SPACING.xxl,
     width: "100%",
+    direction: isRTL ? "rtl" : "ltr",
   };
 
   const textStyle = {
@@ -19,7 +24,8 @@ const Footer = () => {
   };
 
   const iconStyle = {
-    marginLeft: SPACING.xs,
+    marginLeft: isRTL ? "0" : SPACING.xs,
+    marginRight: isRTL ? SPACING.xs : "0",
   };
 
   return (
@@ -32,7 +38,7 @@ const Footer = () => {
                 style={{ ...textStyle, fontSize: "18px", fontWeight: "bold" }}
               >
                 <Icon name="university" style={iconStyle} />
-                جامعة مؤتة - نظام حجز قاعات الامتحانات
+                {t("footer_title")}
               </div>
             </Grid.Column>
           </Grid.Row>
@@ -41,19 +47,19 @@ const Footer = () => {
             <Grid.Column>
               <div style={textStyle}>
                 <Icon name="phone" style={iconStyle} />
-                الهاتف: +962-3-2372380
+                {t("phone")}
               </div>
             </Grid.Column>
             <Grid.Column>
               <div style={textStyle}>
                 <Icon name="mail" style={iconStyle} />
-                البريد: info@mutah.edu.jo
+                {t("email_contact")}
               </div>
             </Grid.Column>
             <Grid.Column>
               <div style={textStyle}>
                 <Icon name="marker" style={iconStyle} />
-                الكرك، الأردن
+                {t("location")}
               </div>
             </Grid.Column>
           </Grid.Row>
@@ -61,7 +67,7 @@ const Footer = () => {
           <Grid.Row>
             <Grid.Column width={16}>
               <div style={{ ...textStyle, fontSize: "12px", opacity: 0.8 }}>
-                © {new Date().getFullYear()} جامعة مؤتة. جميع الحقوق محفوظة
+                {t("rights_reserved", { year: new Date().getFullYear() })}
               </div>
             </Grid.Column>
           </Grid.Row>

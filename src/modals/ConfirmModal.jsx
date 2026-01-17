@@ -2,6 +2,7 @@
 import React from "react";
 import { Modal, Button } from "semantic-ui-react";
 import { COLORS, SPACING } from "../utils/designConstants";
+import { useTranslation } from "react-i18next";
 
 const ConfirmModal = ({
   open,
@@ -13,16 +14,19 @@ const ConfirmModal = ({
   cancelText,
   loading,
 }) => {
+  const { t, i18n } = useTranslation();
+  const isRTL = i18n.language === "ar";
+
   const headerStyle = {
     backgroundColor: COLORS.primaryRed,
     color: COLORS.textWhite,
-    textAlign: "right",
-    direction: "rtl",
+    textAlign: isRTL ? "right" : "left",
+    direction: isRTL ? "rtl" : "ltr",
   };
 
   const contentStyle = {
-    textAlign: "right",
-    direction: "rtl",
+    textAlign: isRTL ? "right" : "left",
+    direction: isRTL ? "rtl" : "ltr",
     fontSize: "16px",
   };
 
@@ -42,9 +46,9 @@ const ConfirmModal = ({
       <Modal.Content style={contentStyle}>
         <p>{message}</p>
       </Modal.Content>
-      <Modal.Actions style={{ textAlign: "left" }}>
+      <Modal.Actions style={{ textAlign: isRTL ? "right" : "left" }}>
         <Button onClick={onClose} style={cancelButtonStyle} disabled={loading}>
-          {cancelText || "إلغاء"}
+          {cancelText || t("cancel")}
         </Button>
         <Button
           onClick={onConfirm}
@@ -52,7 +56,7 @@ const ConfirmModal = ({
           loading={loading}
           disabled={loading}
         >
-          {confirmText || "تأكيد"}
+          {confirmText || t("confirm")}
         </Button>
       </Modal.Actions>
     </Modal>

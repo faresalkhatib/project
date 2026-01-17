@@ -2,24 +2,28 @@
 import React from "react";
 import { Table as SemanticTable } from "semantic-ui-react";
 import { COLORS, SPACING } from "../utils/designConstants";
+import { useTranslation } from "react-i18next";
 
 const Table = ({ columns, data, actions }) => {
+  const { t, i18n } = useTranslation();
+  const isRTL = i18n.language === "ar";
+
   const tableStyle = {
-    direction: "rtl",
+    direction: isRTL ? "rtl" : "ltr",
     fontSize: "14px",
   };
 
   const headerStyle = {
     backgroundColor: COLORS.primaryRed,
     color: COLORS.textWhite,
-    textAlign: "right",
+    textAlign: isRTL ? "right" : "left",
     fontWeight: "bold",
     fontSize: "15px",
     padding: SPACING.md,
   };
 
   const cellStyle = {
-    textAlign: "right",
+    textAlign: isRTL ? "right" : "left",
     padding: SPACING.md,
   };
 
@@ -42,7 +46,7 @@ const Table = ({ columns, data, actions }) => {
               <SemanticTable.HeaderCell
                 style={{ ...headerStyle, textAlign: "center" }}
               >
-                الإجراءات
+                {t("actions")}
               </SemanticTable.HeaderCell>
             )}
           </SemanticTable.Row>

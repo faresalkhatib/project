@@ -4,10 +4,12 @@ import { useSelector, useDispatch } from "react-redux";
 import { Button, Icon } from "semantic-ui-react";
 import { logoutUser } from "../redux/userSlice";
 import { COLORS } from "../utils/designConstants";
+import { useTranslation } from "react-i18next";
 
 const Header = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const { i18n, t } = useTranslation();
   const { user, isAuthenticated } = useSelector((state) => state.user);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -19,14 +21,14 @@ const Header = () => {
     setMobileMenuOpen(false);
   };
 
-  const getRoleName = (role) => {
-    const roles = {
-      student: "طالب",
-      teacher: "مدرس",
-      admin: "إداري",
-    };
-    return roles[role] || role;
+  const toggleLanguage = () => {
+    const newLang = i18n.language === "ar" ? "en" : "ar";
+    i18n.changeLanguage(newLang);
+    localStorage.setItem("lang", newLang);
+    document.documentElement.dir = newLang === "ar" ? "rtl" : "ltr";
   };
+
+  const getRoleName = (role) => t(`role_${role}`);
 
   const getDashboardRoute = () => {
     if (!user) return "/";
@@ -84,12 +86,6 @@ const Header = () => {
               transition: "opacity 0.3s ease",
               flex: "0 0 auto",
             }}
-            onMouseEnter={(e) =>
-              !isAuthenticated && (e.currentTarget.style.opacity = "0.85")
-            }
-            onMouseLeave={(e) =>
-              !isAuthenticated && (e.currentTarget.style.opacity = "1")
-            }
           >
             <div
               style={{
@@ -128,7 +124,7 @@ const Header = () => {
                   whiteSpace: "nowrap",
                 }}
               >
-                جامعة مؤتة
+                {t("university")}
               </span>
               <span
                 style={{
@@ -138,7 +134,7 @@ const Header = () => {
                   whiteSpace: "nowrap",
                 }}
               >
-                نظام حجز قاعات الامتحانات
+                {t("examSystem")}
               </span>
             </div>
           </div>
@@ -152,13 +148,30 @@ const Header = () => {
               flex: "0 0 auto",
             }}
           >
+            {/* Language Switch */}
+            <button
+              onClick={toggleLanguage}
+              style={{
+                background: "rgba(255,255,255,0.15)",
+                border: "2px solid rgba(255,255,255,0.2)",
+                color: COLORS.textWhite,
+                padding: "0.5rem 1rem",
+                borderRadius: "10px",
+                fontWeight: "700",
+                cursor: "pointer",
+                transition: "all 0.3s ease",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {i18n.language === "ar" ? "EN" : "AR"}
+            </button>
+
             {!isAuthenticated ? (
               <>
-                {/* Home Link - Desktop */}
                 <button
                   onClick={() => navigate("/")}
                   style={{
-                    display: "flex",
+                    display: window.innerWidth < 768 ? "none" : "flex",
                     alignItems: "center",
                     gap: "0.6rem",
                     background: "transparent",
@@ -172,12 +185,6 @@ const Header = () => {
                     transition: "all 0.3s ease",
                     whiteSpace: "nowrap",
                   }}
-                  onMouseEnter={(e) => {
-                    e.target.style.background = "rgba(255,255,255,0.15)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.background = "transparent";
-                  }}
                 >
                   <Icon name="home" style={{ margin: 0, fontSize: "1.1rem" }} />
                   <span
@@ -185,11 +192,10 @@ const Header = () => {
                       display: window.innerWidth < 768 ? "none" : "inline",
                     }}
                   >
-                    الرئيسية
+                    {t("home")}
                   </span>
                 </button>
 
-                {/* Login Button */}
                 <Button
                   onClick={() => navigate("/login")}
                   style={{
@@ -207,22 +213,14 @@ const Header = () => {
                     gap: "0.6rem",
                     whiteSpace: "nowrap",
                   }}
-                  onMouseEnter={(e) => {
-                    e.target.style.transform = "translateY(-2px)";
-                    e.target.style.boxShadow = "0 6px 20px rgba(0,0,0,0.3)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.transform = "translateY(0)";
-                    e.target.style.boxShadow = "0 4px 15px rgba(0,0,0,0.2)";
-                  }}
                 >
                   <Icon name="sign in" style={{ margin: 0 }} />
-                  تسجيل الدخول
+                  {t("login")}
                 </Button>
               </>
             ) : (
               <>
-                {/* Dashboard Link - Desktop */}
+                {/* Dashboard Button */}
                 <button
                   onClick={navigateToDashboard}
                   style={{
@@ -240,21 +238,15 @@ const Header = () => {
                     transition: "all 0.3s ease",
                     whiteSpace: "nowrap",
                   }}
-                  onMouseEnter={(e) => {
-                    e.target.style.background = "rgba(255,255,255,0.15)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.background = "transparent";
-                  }}
                 >
                   <Icon
                     name="dashboard"
                     style={{ margin: 0, fontSize: "1.1rem" }}
                   />
-                  <span>لوحة التحكم</span>
+                  {t("dashboard")}
                 </button>
 
-                {/* User Dropdown - Desktop */}
+                {/* User Dropdown */}
                 <div
                   style={{
                     position: "relative",
@@ -268,7 +260,6 @@ const Header = () => {
                       alignItems: "center",
                       gap: "0.8rem",
                       background: "rgba(255,255,255,0.15)",
-                      backdropFilter: "blur(10px)",
                       border: "2px solid rgba(255,255,255,0.2)",
                       color: COLORS.textWhite,
                       padding: "0.5rem 1rem",
@@ -276,14 +267,6 @@ const Header = () => {
                       cursor: "pointer",
                       transition: "all 0.3s ease",
                       whiteSpace: "nowrap",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.target.style.background = "rgba(255,255,255,0.25)";
-                      e.target.style.borderColor = "rgba(255,255,255,0.3)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.target.style.background = "rgba(255,255,255,0.15)";
-                      e.target.style.borderColor = "rgba(255,255,255,0.2)";
                     }}
                   >
                     <Icon
@@ -323,7 +306,6 @@ const Header = () => {
                     />
                   </button>
 
-                  {/* Dropdown Menu */}
                   {dropdownOpen && (
                     <>
                       <div
@@ -348,7 +330,6 @@ const Header = () => {
                           minWidth: "200px",
                           overflow: "hidden",
                           zIndex: 1000,
-                          animation: "slideDown 0.3s ease",
                         }}
                       >
                         <button
@@ -367,18 +348,12 @@ const Header = () => {
                             fontWeight: "600",
                             color: COLORS.textPrimary,
                           }}
-                          onMouseEnter={(e) => {
-                            e.target.style.background = "#f8f9fa";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.target.style.background = "transparent";
-                          }}
                         >
                           <Icon
                             name="user"
                             style={{ margin: 0, color: COLORS.primaryRed }}
                           />
-                          الملف الشخصي
+                          {t("profile")}
                         </button>
 
                         <div
@@ -405,184 +380,19 @@ const Header = () => {
                             fontWeight: "600",
                             color: "#dc3545",
                           }}
-                          onMouseEnter={(e) => {
-                            e.target.style.background = "#fff5f5";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.target.style.background = "transparent";
-                          }}
                         >
                           <Icon name="sign out" style={{ margin: 0 }} />
-                          تسجيل الخروج
+                          {t("logout")}
                         </button>
                       </div>
                     </>
                   )}
                 </div>
-
-                {/* Mobile Menu Button */}
-                <button
-                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                  style={{
-                    display: window.innerWidth >= 768 ? "none" : "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    width: "42px",
-                    height: "42px",
-                    background: "rgba(255,255,255,0.15)",
-                    border: "2px solid rgba(255,255,255,0.2)",
-                    borderRadius: "10px",
-                    color: COLORS.textWhite,
-                    cursor: "pointer",
-                    transition: "all 0.3s ease",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.background = "rgba(255,255,255,0.25)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.background = "rgba(255,255,255,0.15)";
-                  }}
-                >
-                  <Icon
-                    name={mobileMenuOpen ? "close" : "bars"}
-                    style={{ margin: 0, fontSize: "1.3rem" }}
-                  />
-                </button>
               </>
             )}
           </div>
         </nav>
-
-        {/* Mobile Menu */}
-        {isAuthenticated && mobileMenuOpen && (
-          <div
-            style={{
-              paddingBottom: "1rem",
-              animation: "slideDown 0.3s ease",
-            }}
-          >
-            <div
-              style={{
-                background: "rgba(255,255,255,0.1)",
-                borderRadius: "12px",
-                padding: "0.5rem",
-                backdropFilter: "blur(10px)",
-              }}
-            >
-              <button
-                onClick={navigateToDashboard}
-                style={{
-                  width: "100%",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.8rem",
-                  padding: "1rem",
-                  background: "transparent",
-                  border: "none",
-                  borderRadius: "8px",
-                  color: COLORS.textWhite,
-                  cursor: "pointer",
-                  transition: "all 0.2s ease",
-                  fontSize: "1rem",
-                  fontWeight: "600",
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.background = "rgba(255,255,255,0.1)";
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.background = "transparent";
-                }}
-              >
-                <Icon
-                  name="dashboard"
-                  style={{ margin: 0, fontSize: "1.2rem" }}
-                />
-                لوحة التحكم
-              </button>
-
-              <button
-                onClick={navigateToDashboard}
-                style={{
-                  width: "100%",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.8rem",
-                  padding: "1rem",
-                  background: "transparent",
-                  border: "none",
-                  borderRadius: "8px",
-                  color: COLORS.textWhite,
-                  cursor: "pointer",
-                  transition: "all 0.2s ease",
-                  fontSize: "1rem",
-                  fontWeight: "600",
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.background = "rgba(255,255,255,0.1)";
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.background = "transparent";
-                }}
-              >
-                <Icon name="user" style={{ margin: 0, fontSize: "1.2rem" }} />
-                الملف الشخصي
-              </button>
-
-              <div
-                style={{
-                  height: "1px",
-                  background: "rgba(255,255,255,0.2)",
-                  margin: "0.5rem 0.5rem",
-                }}
-              />
-
-              <button
-                onClick={handleLogout}
-                style={{
-                  width: "100%",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.8rem",
-                  padding: "1rem",
-                  background: "transparent",
-                  border: "none",
-                  borderRadius: "8px",
-                  color: "#ffcccc",
-                  cursor: "pointer",
-                  transition: "all 0.2s ease",
-                  fontSize: "1rem",
-                  fontWeight: "600",
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.background = "rgba(255,255,255,0.1)";
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.background = "transparent";
-                }}
-              >
-                <Icon
-                  name="sign out"
-                  style={{ margin: 0, fontSize: "1.2rem" }}
-                />
-                تسجيل الخروج
-              </button>
-            </div>
-          </div>
-        )}
       </div>
-
-      <style>{`
-        @keyframes slideDown {
-          from {
-            opacity: 0;
-            transform: translateY(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-      `}</style>
     </header>
   );
 };

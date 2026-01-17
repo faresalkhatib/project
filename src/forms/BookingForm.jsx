@@ -1,10 +1,11 @@
-// src/forms/BookingForm.js (Updated)
+// src/forms/BookingForm.js (Updated with i18n support)
 import React, { useState, useEffect } from "react";
 import { Formik } from "formik";
 import * as Yup from "yup";
 import { Form, Button, Dropdown, Message, Icon } from "semantic-ui-react";
 import { COLORS, SPACING } from "../utils/designConstants";
 import ClassroomCalendar from "../components/ClassroomCalendar";
+import { useTranslation } from "react-i18next";
 
 const BookingForm = ({
   onSubmit,
@@ -14,20 +15,21 @@ const BookingForm = ({
   enrolledSubjects = [],
   error,
 }) => {
+  const { t, i18n } = useTranslation();
   const [showCalendar, setShowCalendar] = useState(false);
   const [calendarSelection, setCalendarSelection] = useState(null);
 
   const validationSchema = Yup.object({
-    classroomId: Yup.string().required("القاعة مطلوبة"),
-    subjectId: Yup.string().required("يجب اختيار مادة"),
+    classroomId: Yup.string().required(t("classroom") + " " + t("required")),
+    subjectId: Yup.string().required(t("subject") + " " + t("required")),
     date: Yup.date()
-      .required("التاريخ مطلوب")
-      .min(new Date(), "التاريخ يجب أن يكون في المستقبل"),
+      .required(t("date") + " " + t("required"))
+      .min(new Date(), t("date_must_be_future")),
     startTime: Yup.string()
-      .required("وقت البداية مطلوب")
+      .required(t("start_time") + " " + t("required"))
       .test(
         "is-valid-time",
-        "يجب أن يكون وقت البداية بين 08:00 و 18:00",
+        t("start_time_range"),
         function (value) {
           if (!value) return false;
           const [hours] = value.split(":").map(Number);
@@ -35,10 +37,10 @@ const BookingForm = ({
         }
       ),
     endTime: Yup.string()
-      .required("وقت النهاية مطلوب")
+      .required(t("end_time") + " " + t("required"))
       .test(
         "is-valid-time",
-        "يجب أن يكون وقت النهاية بين 08:00 و 18:00",
+        t("end_time_range"),
         function (value) {
           if (!value) return false;
           const [hours] = value.split(":").map(Number);
@@ -47,7 +49,7 @@ const BookingForm = ({
       )
       .test(
         "is-greater",
-        "وقت النهاية يجب أن يكون بعد وقت البداية",
+        t("end_time_after_start"),
         function (value) {
           const { startTime } = this.parent;
           return !startTime || !value || value > startTime;
@@ -58,20 +60,20 @@ const BookingForm = ({
   const subjectOptions = enrolledSubjects.map((subject, index) => ({
     key: `${subject.subjectNumber}-${subject.subjectSubNumber || index}`,
     text: `${subject.subjectNumber} - ${subject.subjectName}${
-      subject.subjectSubNumber ? ` (شعبة ${subject.subjectSubNumber})` : ""
+      subject.subjectSubNumber ? ` (${t("sub_group")} ${subject.subjectSubNumber})` : ""
     }`,
     value: JSON.stringify(subject),
   }));
 
   const classroomOptions = classrooms.map((classroom) => ({
     key: classroom.id,
-    text: `${classroom.name} - ${classroom.building} (سعة: ${classroom.capacity})`,
+    text: `${classroom.name} - ${classroom.building} (${t("capacity_label")}: ${classroom.capacity})`,
     value: classroom.id,
   }));
 
   const inputStyle = {
-    direction: "rtl",
-    textAlign: "right",
+    direction: i18n.language === "ar" ? "rtl" : "ltr",
+    textAlign: i18n.language === "ar" ? "right" : "left",
   };
 
   const buttonStyle = {
@@ -126,7 +128,6 @@ const BookingForm = ({
         handleSubmit,
         setFieldValue,
       }) => {
-        // Handle calendar time slot selection
         const handleTimeSlotSelect = (selection) => {
           setFieldValue("classroomId", selection.classroomId);
           setFieldValue("date", selection.date);
@@ -162,8 +163,8 @@ const BookingForm = ({
                   name={showCalendar ? "list" : "calendar alternate outline"}
                 />
                 {showCalendar
-                  ? "إخفاء التقويم"
-                  : "عرض التقويم - اختر الوقت من التقويم"}
+                  ? t("hide_calendar")
+                  : t("show_calendar_select_time")}
               </Button>
             </div>
 
@@ -181,12 +182,15 @@ const BookingForm = ({
             {calendarSelection && (
               <Message
                 positive
-                style={{ direction: "rtl", marginBottom: SPACING.md }}
+                style={{ 
+                  direction: i18n.language === "ar" ? "rtl" : "ltr",
+                  marginBottom: SPACING.md 
+                }}
               >
                 <Icon name="check circle" />
-                <strong>تم الاختيار من التقويم:</strong>
+                <strong>{t("selected_from_calendar")}:</strong>
                 <div style={{ marginTop: SPACING.xs }}>
-                  التاريخ: {calendarSelection.date} | الوقت:{" "}
+                  {t("date")}: {calendarSelection.date} | {t("time")}:{" "}
                   {calendarSelection.startTime} - {calendarSelection.endTime}
                 </div>
               </Message>
@@ -194,11 +198,14 @@ const BookingForm = ({
 
             {/* Subject Selection */}
             <Form.Field error={touched.subjectId && !!errors.subjectId}>
-              <label style={{ textAlign: "right", color: COLORS.textPrimary }}>
-                المادة <span style={{ color: COLORS.error }}>*</span>
+              <label style={{ 
+                textAlign: i18n.language === "ar" ? "right" : "left",
+                color: COLORS.textPrimary 
+              }}>
+                {t("subject")} <span style={{ color: COLORS.error }}>*</span>
               </label>
               <Dropdown
-                placeholder="اختر المادة"
+                placeholder={t("select_subject")}
                 fluid
                 search
                 selection
@@ -212,7 +219,7 @@ const BookingForm = ({
                 <div
                   style={{
                     color: COLORS.error,
-                    textAlign: "right",
+                    textAlign: i18n.language === "ar" ? "right" : "left",
                     marginTop: SPACING.xs,
                   }}
                 >
@@ -223,11 +230,14 @@ const BookingForm = ({
 
             {/* Classroom Selection */}
             <Form.Field error={touched.classroomId && !!errors.classroomId}>
-              <label style={{ textAlign: "right", color: COLORS.textPrimary }}>
-                القاعة <span style={{ color: COLORS.error }}>*</span>
+              <label style={{ 
+                textAlign: i18n.language === "ar" ? "right" : "left",
+                color: COLORS.textPrimary 
+              }}>
+                {t("classroom")} <span style={{ color: COLORS.error }}>*</span>
               </label>
               <Dropdown
-                placeholder="اختر القاعة أو استخدم التقويم"
+                placeholder={t("select_classroom_or_calendar")}
                 fluid
                 search
                 selection
@@ -240,7 +250,7 @@ const BookingForm = ({
                 <div
                   style={{
                     color: COLORS.error,
-                    textAlign: "right",
+                    textAlign: i18n.language === "ar" ? "right" : "left",
                     marginTop: SPACING.xs,
                   }}
                 >
@@ -251,8 +261,11 @@ const BookingForm = ({
 
             {/* Date Selection */}
             <Form.Field error={touched.date && !!errors.date}>
-              <label style={{ textAlign: "right", color: COLORS.textPrimary }}>
-                التاريخ <span style={{ color: COLORS.error }}>*</span>
+              <label style={{ 
+                textAlign: i18n.language === "ar" ? "right" : "left",
+                color: COLORS.textPrimary 
+              }}>
+                {t("date")} <span style={{ color: COLORS.error }}>*</span>
               </label>
               <input
                 type="date"
@@ -267,7 +280,7 @@ const BookingForm = ({
                 <div
                   style={{
                     color: COLORS.error,
-                    textAlign: "right",
+                    textAlign: i18n.language === "ar" ? "right" : "left",
                     marginTop: SPACING.xs,
                   }}
                 >
@@ -280,9 +293,12 @@ const BookingForm = ({
             <Form.Group widths="equal">
               <Form.Field error={touched.startTime && !!errors.startTime}>
                 <label
-                  style={{ textAlign: "right", color: COLORS.textPrimary }}
+                  style={{ 
+                    textAlign: i18n.language === "ar" ? "right" : "left",
+                    color: COLORS.textPrimary 
+                  }}
                 >
-                  وقت البداية <span style={{ color: COLORS.error }}>*</span>
+                  {t("start_time")} <span style={{ color: COLORS.error }}>*</span>
                 </label>
                 <input
                   type="time"
@@ -298,7 +314,7 @@ const BookingForm = ({
                   <div
                     style={{
                       color: COLORS.error,
-                      textAlign: "right",
+                      textAlign: i18n.language === "ar" ? "right" : "left",
                       marginTop: SPACING.xs,
                     }}
                   >
@@ -309,9 +325,12 @@ const BookingForm = ({
 
               <Form.Field error={touched.endTime && !!errors.endTime}>
                 <label
-                  style={{ textAlign: "right", color: COLORS.textPrimary }}
+                  style={{ 
+                    textAlign: i18n.language === "ar" ? "right" : "left",
+                    color: COLORS.textPrimary 
+                  }}
                 >
-                  وقت النهاية <span style={{ color: COLORS.error }}>*</span>
+                  {t("end_time")} <span style={{ color: COLORS.error }}>*</span>
                 </label>
                 <input
                   type="time"
@@ -327,7 +346,7 @@ const BookingForm = ({
                   <div
                     style={{
                       color: COLORS.error,
-                      textAlign: "right",
+                      textAlign: i18n.language === "ar" ? "right" : "left",
                       marginTop: SPACING.xs,
                     }}
                   >
@@ -347,7 +366,7 @@ const BookingForm = ({
               }
               style={buttonStyle}
             >
-              إنشاء حجز
+              {t("create_new_booking")}
             </Button>
 
             {error && (
@@ -376,7 +395,7 @@ const BookingForm = ({
                   borderRadius: "4px",
                 }}
               >
-                يجب إضافة المواد المسجلة أولاً من القسم أعلاه
+                {t("add_subjects_first_warning")}
               </div>
             )}
           </Form>

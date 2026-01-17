@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { Container, Message, Loader, Button, Icon } from "semantic-ui-react";
+import { useTranslation } from "react-i18next";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import Table from "../components/Table";
@@ -17,6 +18,9 @@ import { COLORS } from "../utils/designConstants";
 const StudentDashboard = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
+  const isRTL = i18n.language === "ar";
+
   const {
     user,
     isAuthenticated,
@@ -24,6 +28,7 @@ const StudentDashboard = () => {
   } = useSelector((state) => state.user);
   const { bookings, loading, error } = useSelector((state) => state.bookings);
   const [showAddSubject, setShowAddSubject] = useState(false);
+  const [debugInfo, setDebugInfo] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -36,13 +41,26 @@ const StudentDashboard = () => {
       return;
     }
 
-    // Subscribe to real-time updates
-    if (user?.registeredSubjects) {
-      dispatch(subscribeToStudentBookings(user.registeredSubjects));
+    // NORMALIZE subjects to strings before subscribing
+    if (user?.registeredSubjects && user.registeredSubjects.length > 0) {
+      const normalizedSubjects = user.registeredSubjects.map((sub) => ({
+        ...sub,
+        subjectNumber: String(sub.subjectNumber),
+        subjectSubNumber: String(sub.subjectSubNumber),
+      }));
+
+      console.log(
+        "🔔 Subscribing with NORMALIZED subjects:",
+        normalizedSubjects
+      );
+      dispatch(subscribeToStudentBookings(normalizedSubjects));
+    } else {
+      console.log("⚠️ No registered subjects found");
     }
 
     // Cleanup on unmount
     return () => {
+      console.log("🧹 Cleaning up bookings subscription");
       dispatch(cleanupBookings());
     };
   }, [
@@ -53,21 +71,57 @@ const StudentDashboard = () => {
     user?.role,
   ]);
 
+  // Debug effect
+  useEffect(() => {
+    console.log("📊 Debug Info:");
+    console.log("- User Subjects (RAW):", user?.registeredSubjects);
+    console.log(
+      "- User Subjects Types:",
+      user?.registeredSubjects?.map((s) => ({
+        name: s.subjectName,
+        number: s.subjectNumber,
+        numberType: typeof s.subjectNumber,
+        subNumber: s.subjectSubNumber,
+        subNumberType: typeof s.subjectSubNumber,
+      }))
+    );
+    console.log("- Bookings Count:", bookings?.length);
+    console.log(
+      "- Bookings Types:",
+      bookings?.map((b) => ({
+        name: b.subjectName,
+        number: b.subjectNumber,
+        numberType: typeof b.subjectNumber,
+        subNumber: b.subjectSubNumber,
+        subNumberType: typeof b.subjectSubNumber,
+      }))
+    );
+    console.log("- Loading:", loading);
+    console.log("- Error:", error);
+  }, [user?.registeredSubjects, bookings, loading, error]);
+
   const handleAddSubject = (newSubject) => {
     const currentSubjects = user?.registeredSubjects || [];
 
+    // Normalize for comparison
+    const normalizedNew = {
+      ...newSubject,
+      subjectNumber: String(newSubject.subjectNumber),
+      subjectSubNumber: String(newSubject.subjectSubNumber),
+    };
+
     const exists = currentSubjects.some(
       (sub) =>
-        sub.subjectNumber === newSubject.subjectNumber &&
-        sub.subjectSubNumber === newSubject.subjectSubNumber
+        String(sub.subjectNumber) === normalizedNew.subjectNumber &&
+        String(sub.subjectSubNumber) === normalizedNew.subjectSubNumber
     );
 
     if (exists) {
-      alert("هذه المادة والشعبة مسجلة بالفعل");
+      alert(t("subject_already_registered"));
       return;
     }
 
-    const updatedSubjects = [...currentSubjects, newSubject];
+    const updatedSubjects = [...currentSubjects, normalizedNew];
 
     dispatch(
       updateUserSubjects({
@@ -81,8 +135,8 @@ const StudentDashboard = () => {
     const updatedSubjects = user.registeredSubjects.filter(
       (sub) =>
         !(
-          sub.subjectNumber === subjectNumber &&
-          sub.subjectSubNumber === subjectSubNumber
+          String(sub.subjectNumber) === String(subjectNumber) &&
+          String(sub.subjectSubNumber) === String(subjectSubNumber)
         )
     );
 
@@ -95,31 +149,58 @@ const StudentDashboard = () => {
   };
 
   const columns = [
-    { header: "المادة", accessor: "subjectName" },
-    { header: "رقم المادة", accessor: "subjectNumber" },
-    { header: "رقم الشعبة", accessor: "subjectSubNumber" },
-    { header: "القاعة", accessor: "classroomName" },
+    { header: t("subject"), accessor: "subjectName" },
+    { header: t("subject_number"), accessor: "subjectNumber" },
+    { header: t("sub_group_number"), accessor: "subjectSubNumber" },
+    { header: t("classroom"), accessor: "classroomName" },
     {
-      header: "التاريخ",
+      header: t("date"),
       accessor: "date",
       render: (row) => {
         if (row.date?.toDate) {
-          return row.date.toDate().toLocaleDateString("ar-JO");
+          return row.date
+            .toDate()
+            .toLocaleDateString(isRTL ? "ar-JO" : "en-US");
         }
         return row.date || "-";
       },
     },
     {
-      header: "وقت البداية",
+      header: t("start_time"),
       accessor: "startTime",
       render: (row) => row.startTime || "-",
     },
     {
-      header: "وقت النهاية",
+      header: t("end_time"),
       accessor: "endTime",
       render: (row) => row.endTime || "-",
     },
-    { header: "الدكتور", accessor: "teacherName" },
+    { header: t("teacher"), accessor: "teacherName" },
+    {
+      header: t("status"),
+      accessor: "status",
+      render: (row) => {
+        const statusColors = {
+          approved: "#28a745",
+          pending: "#ffc107",
+          rejected: "#dc3545",
+        };
+        return (
+          <span
+            style={{
+              backgroundColor: statusColors[row.status] || "#6c757d",
+              color: "white",
+              padding: "0.3rem 0.8rem",
+              borderRadius: "20px",
+              fontSize: "0.85rem",
+              fontWeight: "600",
+            }}
+          >
+            {row.status || "unknown"}
+          </span>
+        );
+      },
+    },
   ];
 
   const tableData = bookings.map((booking) => ({
@@ -132,7 +213,7 @@ const StudentDashboard = () => {
         minHeight: "100vh",
         display: "flex",
         flexDirection: "column",
-        direction: "rtl",
+        direction: isRTL ? "rtl" : "ltr",
         backgroundColor: "#f8f9fa",
       }}
     >
@@ -168,7 +249,7 @@ const StudentDashboard = () => {
               style={{
                 position: "absolute",
                 top: "-50px",
-                right: "-50px",
+                [isRTL ? "right" : "left"]: "-50px",
                 width: "200px",
                 height: "200px",
                 borderRadius: "50%",
@@ -180,7 +261,7 @@ const StudentDashboard = () => {
               style={{
                 position: "absolute",
                 bottom: "-80px",
-                left: "-80px",
+                [isRTL ? "left" : "right"]: "-80px",
                 width: "250px",
                 height: "250px",
                 borderRadius: "50%",
@@ -199,7 +280,7 @@ const StudentDashboard = () => {
                   textShadow: "0 2px 10px rgba(0,0,0,0.2)",
                 }}
               >
-                مرحباً {user?.name} 👋
+                {t("welcome_student", { name: user?.name })} 👋
               </h1>
               <p
                 style={{
@@ -209,10 +290,144 @@ const StudentDashboard = () => {
                   fontWeight: "300",
                 }}
               >
-                جدول امتحاناتك ومتابعة موادك الدراسية
+                {t("student_dashboard_subtitle")}
               </p>
             </div>
           </div>
+
+          {/* Debug Toggle Button */}
+          <Button
+            size="mini"
+            onClick={() => setDebugInfo(!debugInfo)}
+            style={{
+              marginBottom: "1rem",
+              backgroundColor: "#6c757d",
+              color: "white",
+            }}
+          >
+            {debugInfo ? "Hide Debug Info" : "Show Debug Info"}
+          </Button>
+
+          {/* Debug Info Panel */}
+          {debugInfo && (
+            <div
+              style={{
+                backgroundColor: "#fff3cd",
+                border: "2px solid #ffc107",
+                borderRadius: "12px",
+                padding: "1rem",
+                marginBottom: "1.5rem",
+                fontFamily: "monospace",
+                fontSize: "0.85rem",
+              }}
+            >
+              <h4 style={{ marginTop: 0, color: "#856404" }}>
+                🔍 TYPE MISMATCH DETECTOR:
+              </h4>
+
+              <div
+                style={{
+                  marginBottom: "1rem",
+                  padding: "0.5rem",
+                  backgroundColor: "#fff",
+                  borderRadius: "8px",
+                }}
+              >
+                <strong>YOUR REGISTERED SUBJECTS:</strong>
+                {user?.registeredSubjects?.map((sub, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      marginLeft: "1rem",
+                      color: "#495057",
+                      marginTop: "0.3rem",
+                    }}
+                  >
+                    <div>📚 {sub.subjectName}</div>
+                    <div style={{ fontSize: "0.75rem", color: "#6c757d" }}>
+                      - Number: "{sub.subjectNumber}" (type:{" "}
+                      {typeof sub.subjectNumber})
+                    </div>
+                    <div style={{ fontSize: "0.75rem", color: "#6c757d" }}>
+                      - SubNumber: "{sub.subjectSubNumber}" (type:{" "}
+                      {typeof sub.subjectSubNumber})
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div
+                style={{
+                  padding: "0.5rem",
+                  backgroundColor: "#fff",
+                  borderRadius: "8px",
+                }}
+              >
+                <strong>BOOKINGS IN DATABASE:</strong>
+                {bookings?.length === 0 ? (
+                  <div
+                    style={{
+                      marginLeft: "1rem",
+                      color: "#dc3545",
+                      marginTop: "0.3rem",
+                    }}
+                  >
+                    ❌ NO BOOKINGS FOUND!
+                  </div>
+                ) : (
+                  bookings?.map((booking, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        marginLeft: "1rem",
+                        color: "#495057",
+                        marginTop: "0.3rem",
+                      }}
+                    >
+                      <div>
+                        📅 {booking.subjectName} - Status: {booking.status}
+                      </div>
+                      <div style={{ fontSize: "0.75rem", color: "#6c757d" }}>
+                        - Number: "{booking.subjectNumber}" (type:{" "}
+                        {typeof booking.subjectNumber})
+                      </div>
+                      <div style={{ fontSize: "0.75rem", color: "#6c757d" }}>
+                        - SubNumber: "{booking.subjectSubNumber}" (type:{" "}
+                        {typeof booking.subjectSubNumber})
+                      </div>
+                      {user?.registeredSubjects?.some(
+                        (s) =>
+                          String(s.subjectNumber) ===
+                            String(booking.subjectNumber) &&
+                          String(s.subjectSubNumber) ===
+                            String(booking.subjectSubNumber)
+                      ) ? (
+                        <div
+                          style={{
+                            fontSize: "0.75rem",
+                            color: "#28a745",
+                            fontWeight: "bold",
+                          }}
+                        >
+                          ✅ MATCH FOUND!
+                        </div>
+                      ) : (
+                        <div
+                          style={{
+                            fontSize: "0.75rem",
+                            color: "#dc3545",
+                            fontWeight: "bold",
+                          }}
+                        >
+                          ❌ NO MATCH - Type mismatch or different values
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Exams Schedule Section */}
           <div
@@ -264,7 +479,7 @@ const StudentDashboard = () => {
                   flex: 1,
                 }}
               >
-                جدول الامتحانات
+                {t("exam_schedule")}
               </h2>
             </div>
 
@@ -289,8 +504,39 @@ const StudentDashboard = () => {
                 }}
               >
                 <Loader active inline="centered" size="large">
-                  جاري التحميل...
+                  {t("loading")}
                 </Loader>
+              </div>
+            ) : !user?.registeredSubjects ||
+              user.registeredSubjects.length === 0 ? (
+              <div
+                style={{
+                  textAlign: "center",
+                  padding: "clamp(2rem, 4vw, 3rem)",
+                  backgroundColor: "#fff3cd",
+                  borderRadius: "12px",
+                  border: "2px dashed #ffc107",
+                }}
+              >
+                <Icon
+                  name="info circle"
+                  style={{
+                    fontSize: "4rem",
+                    color: "#ff9800",
+                    marginBottom: "1rem",
+                  }}
+                />
+                <p
+                  style={{
+                    color: "#856404",
+                    fontSize: "clamp(1rem, 2.5vw, 1.2rem)",
+                    fontWeight: "500",
+                    margin: 0,
+                  }}
+                >
+                  {t("please_register_subjects_first") ||
+                    "Please register subjects first to see your exam schedule"}
+                </p>
               </div>
             ) : bookings.length === 0 ? (
               <div
@@ -315,10 +561,20 @@ const StudentDashboard = () => {
                     color: "#4a90d9",
                     fontSize: "clamp(1rem, 2.5vw, 1.2rem)",
                     fontWeight: "500",
+                    marginBottom: "0.5rem",
+                  }}
+                >
+                  {t("no_exams_scheduled")}
+                </p>
+                <p
+                  style={{
+                    color: "#6c757d",
+                    fontSize: "clamp(0.9rem, 2vw, 1rem)",
                     margin: 0,
                   }}
                 >
-                  لا توجد امتحانات مجدولة حالياً
+                  {t("exams_will_appear_here") ||
+                    "Exams will appear here once they are scheduled and approved"}
                 </p>
               </div>
             ) : (
@@ -386,7 +642,7 @@ const StudentDashboard = () => {
                     fontWeight: "700",
                   }}
                 >
-                  المواد المسجلة
+                  {t("registered_subjects")}
                 </h3>
               </div>
               <Button
@@ -415,9 +671,12 @@ const StudentDashboard = () => {
               >
                 <Icon
                   name={showAddSubject ? "minus" : "plus"}
-                  style={{ marginRight: "0.5rem", marginLeft: "0.5rem" }}
+                  style={{
+                    [isRTL ? "marginLeft" : "marginRight"]: "0.5rem",
+                    [isRTL ? "marginRight" : "marginLeft"]: "0.5rem",
+                  }}
                 />
-                {showAddSubject ? "إخفاء" : "إضافة مادة   "}
+                {showAddSubject ? t("hide_form") : t("add_subject")}
               </Button>
             </div>
 
@@ -491,7 +750,7 @@ const StudentDashboard = () => {
                           fontSize: "clamp(0.85rem, 2vw, 0.95rem)",
                         }}
                       >
-                        {subject.subjectNumber} - شعبة{" "}
+                        {subject.subjectNumber} - {t("sub_group")}{" "}
                         {subject.subjectSubNumber}
                       </div>
                     </div>
@@ -551,7 +810,7 @@ const StudentDashboard = () => {
                     margin: 0,
                   }}
                 >
-                  لم يتم تسجيل أي مواد بعد. اضغط على "إضافة مادة" للبدء
+                  {t("no_registered_subjects")}
                 </p>
               </div>
             )}

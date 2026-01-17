@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useSelector } from "react-redux";
 import { Button, Dropdown, Icon, Label } from "semantic-ui-react";
+import { useTranslation } from "react-i18next";
 import "semantic-ui-css/semantic.min.css";
 
 // Default spacing and colors
@@ -9,6 +10,9 @@ const SPACING = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24 };
 const COLORS = { textPrimary: "#333", textSecondary: "#666" };
 
 const ClassroomCalendar = ({ onTimeSlotSelect, selectedClassroom }) => {
+  const { t, i18n } = useTranslation();
+  const isRTL = i18n.language === "ar";
+
   const { bookings } = useSelector((state) => state.bookings);
   const { classrooms } = useSelector((state) => state.classrooms);
 
@@ -24,9 +28,9 @@ const ClassroomCalendar = ({ onTimeSlotSelect, selectedClassroom }) => {
   }, [selectedClassroom]);
 
   const durationOptions = [
-    { key: 1, text: "ساعة واحدة (1:00)", value: 1 },
-    { key: 1.5, text: "ساعة ونصف (1:30)", value: 1.5 },
-    { key: 2, text: "ساعتان (2:00)", value: 2 },
+    { key: 1, text: t("one_hour"), value: 1 },
+    { key: 1.5, text: t("one_half_hour"), value: 1.5 },
+    { key: 2, text: t("two_hours"), value: 2 },
   ];
 
   const generateAllSlots = () => {
@@ -108,7 +112,7 @@ const ClassroomCalendar = ({ onTimeSlotSelect, selectedClassroom }) => {
 
   const handlePeriodClick = (period) => {
     if (!selectedRoom || !selectedDate) {
-      alert("الرجاء اختيار القاعة والتاريخ أولاً");
+      alert(t("select_all_fields"));
       return;
     }
     if (!period.isFree) return;
@@ -125,7 +129,7 @@ const ClassroomCalendar = ({ onTimeSlotSelect, selectedClassroom }) => {
 
   const classroomOptions = classrooms.map((room) => ({
     key: room.id,
-    text: `${room.name} - ${room.building || ""} (سعة: ${
+    text: `${room.name} - ${room.building || ""} (${t("capacity_label")}: ${
       room.capacity || "N/A"
     })`,
     value: room.id,
@@ -134,12 +138,14 @@ const ClassroomCalendar = ({ onTimeSlotSelect, selectedClassroom }) => {
   const getDateOptions = () => {
     const dates = [];
     const today = new Date();
+    const locale = isRTL ? "ar-JO" : "en-US";
+
     for (let i = 0; i < 14; i++) {
       const date = new Date(today);
       date.setDate(today.getDate() + i);
       const dateStr = date.toISOString().split("T")[0];
-      const dayName = date.toLocaleDateString("ar-JO", { weekday: "long" });
-      const dateDisplay = date.toLocaleDateString("ar-JO");
+      const dayName = date.toLocaleDateString(locale, { weekday: "long" });
+      const dateDisplay = date.toLocaleDateString(locale);
       dates.push({
         key: dateStr,
         text: `${dayName} - ${dateDisplay}`,
@@ -149,43 +155,14 @@ const ClassroomCalendar = ({ onTimeSlotSelect, selectedClassroom }) => {
     return dates;
   };
 
-  const getClassroomStatus = () => {
-    if (!selectedRoom || !selectedDate) return null;
-    const freeCount = freePeriods.length;
-    const totalCount = examPeriods.length;
-    const busyCount = busyPeriods.length;
-    if (freeCount === totalCount)
-      return {
-        status: "available",
-        label: "متاح بالكامل",
-        color: "green",
-        freeCount,
-        busyCount,
-        totalCount,
-      };
-    if (freeCount === 0)
-      return {
-        status: "full",
-        label: "محجوز بالكامل",
-        color: "red",
-        freeCount,
-        busyCount,
-        totalCount,
-      };
-    return {
-      status: "partial",
-      label: "متاح جزئياً",
-      color: "orange",
-      freeCount,
-      busyCount,
-      totalCount,
-    };
+  const getDurationText = (duration) => {
+    if (duration === 1) return t("one_hour_short");
+    if (duration === 1.5) return t("one_half_hour_short");
+    return t("two_hours_short");
   };
 
-  const roomStatus = getClassroomStatus();
-
   return (
-    <div style={{ direction: "rtl" }}>
+    <div style={{ direction: isRTL ? "rtl" : "ltr" }}>
       {/* Selection Controls */}
       <div
         style={{
@@ -213,16 +190,16 @@ const ClassroomCalendar = ({ onTimeSlotSelect, selectedClassroom }) => {
                 color: COLORS.textPrimary,
               }}
             >
-              <Icon name="hourglass half" /> مدة الامتحان
+              <Icon name="hourglass half" /> {t("exam_duration")}
             </label>
             <Dropdown
-              placeholder="اختر المدة"
+              placeholder={t("select_duration")}
               fluid
               selection
               options={durationOptions}
               value={examDuration}
               onChange={(e, { value }) => setExamDuration(value)}
-              style={{ direction: "rtl" }}
+              style={{ direction: isRTL ? "rtl" : "ltr" }}
             />
           </div>
 
@@ -236,17 +213,17 @@ const ClassroomCalendar = ({ onTimeSlotSelect, selectedClassroom }) => {
                 color: COLORS.textPrimary,
               }}
             >
-              <Icon name="building" /> القاعة
+              <Icon name="building" /> {t("classroom")}
             </label>
             <Dropdown
-              placeholder="اختر القاعة"
+              placeholder={t("select_classroom")}
               fluid
               search
               selection
               options={classroomOptions}
               value={selectedRoom}
               onChange={(e, { value }) => setSelectedRoom(value)}
-              style={{ direction: "rtl" }}
+              style={{ direction: isRTL ? "rtl" : "ltr" }}
             />
           </div>
 
@@ -260,21 +237,19 @@ const ClassroomCalendar = ({ onTimeSlotSelect, selectedClassroom }) => {
                 color: COLORS.textPrimary,
               }}
             >
-              <Icon name="calendar" /> التاريخ
+              <Icon name="calendar" /> {t("date")}
             </label>
             <Dropdown
-              placeholder="اختر التاريخ"
+              placeholder={t("select_date")}
               fluid
               selection
               options={getDateOptions()}
               value={selectedDate}
               onChange={(e, { value }) => setSelectedDate(value)}
-              style={{ direction: "rtl" }}
+              style={{ direction: isRTL ? "rtl" : "ltr" }}
             />
           </div>
         </div>
-
-        {/* Classroom Status */}
       </div>
 
       {/* Calendar / Free periods */}
@@ -299,7 +274,7 @@ const ClassroomCalendar = ({ onTimeSlotSelect, selectedClassroom }) => {
               marginTop: SPACING.md,
             }}
           >
-            الرجاء اختيار مدة الامتحان، القاعة، والتاريخ
+            {t("select_all_fields")}
           </p>
         </div>
       ) : freePeriods.length === 0 ? (
@@ -324,12 +299,7 @@ const ClassroomCalendar = ({ onTimeSlotSelect, selectedClassroom }) => {
               marginTop: SPACING.md,
             }}
           >
-            لا توجد فترات متاحة بمدة{" "}
-            {examDuration === 1
-              ? "ساعة"
-              : examDuration === 1.5
-              ? "ساعة ونصف"
-              : "ساعتان"}
+            {t("no_available_periods")} {getDurationText(examDuration)}
           </p>
           <p
             style={{
@@ -338,7 +308,7 @@ const ClassroomCalendar = ({ onTimeSlotSelect, selectedClassroom }) => {
               marginTop: SPACING.sm,
             }}
           >
-            جرب تغيير مدة الامتحان أو اختيار تاريخ آخر
+            {t("try_different_duration")}
           </p>
         </div>
       ) : (
@@ -365,13 +335,8 @@ const ClassroomCalendar = ({ onTimeSlotSelect, selectedClassroom }) => {
               gap: SPACING.sm,
             }}
           >
-            <Icon name="check circle" /> الفترات المتاحة للامتحان -{" "}
-            {examDuration === 1
-              ? "ساعة"
-              : examDuration === 1.5
-              ? "ساعة ونصف"
-              : "ساعتان"}{" "}
-            ({freePeriods.length})
+            <Icon name="check circle" /> {t("available_exam_periods")} -{" "}
+            {getDurationText(examDuration)} ({freePeriods.length})
           </h3>
 
           <div
@@ -434,11 +399,7 @@ const ClassroomCalendar = ({ onTimeSlotSelect, selectedClassroom }) => {
                       fontWeight: 600,
                     }}
                   >
-                    {period.duration === 1
-                      ? "ساعة"
-                      : period.duration === 1.5
-                      ? "ساعة ونصف"
-                      : "ساعتان"}
+                    {getDurationText(period.duration)}
                   </Label>
                   <div
                     style={{
@@ -448,7 +409,7 @@ const ClassroomCalendar = ({ onTimeSlotSelect, selectedClassroom }) => {
                       marginTop: SPACING.xs,
                     }}
                   >
-                    {isHovered ? "✓ انقر للحجز" : "✓ متاح بالكامل"}
+                    {isHovered ? t("click_to_book") : t("completely_available")}
                   </div>
                 </div>
               );

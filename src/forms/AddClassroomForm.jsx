@@ -4,19 +4,23 @@ import { Formik } from "formik";
 import * as Yup from "yup";
 import { Form, Button } from "semantic-ui-react";
 import { COLORS, SPACING } from "../utils/designConstants";
+import { useTranslation } from "react-i18next";
 
 const AddClassroomForm = ({ onSubmit, loading, initialValues = null }) => {
+  const { t, i18n } = useTranslation();
+  const isRTL = i18n.language === "ar";
+
   const validationSchema = Yup.object({
-    name: Yup.string().required("اسم القاعة مطلوب"),
+    name: Yup.string().required(t("classroom_name_required")),
     capacity: Yup.number()
-      .positive("السعة يجب أن تكون رقم موجب")
-      .required("سعة القاعة مطلوبة"),
-    building: Yup.string().required("اسم المبنى مطلوب"),
+      .positive(t("capacity_positive"))
+      .required(t("capacity_required")),
+    building: Yup.string().required(t("building_required")),
   });
 
   const inputStyle = {
-    direction: "rtl",
-    textAlign: "right",
+    direction: isRTL ? "rtl" : "ltr",
+    textAlign: isRTL ? "right" : "left",
   };
 
   const buttonStyle = {
@@ -46,13 +50,18 @@ const AddClassroomForm = ({ onSubmit, loading, initialValues = null }) => {
       }) => (
         <Form onSubmit={handleSubmit}>
           <Form.Field error={touched.name && !!errors.name}>
-            <label style={{ textAlign: "right", color: COLORS.textPrimary }}>
-              اسم القاعة
+            <label
+              style={{
+                textAlign: isRTL ? "right" : "left",
+                color: COLORS.textPrimary,
+              }}
+            >
+              {t("classroom_name")}
             </label>
             <input
               type="text"
               name="name"
-              placeholder="مثال: قاعة 101"
+              placeholder={t("classroom_name_placeholder")}
               value={values.name}
               onChange={handleChange}
               onBlur={handleBlur}
@@ -62,7 +71,7 @@ const AddClassroomForm = ({ onSubmit, loading, initialValues = null }) => {
               <div
                 style={{
                   color: COLORS.error,
-                  textAlign: "right",
+                  textAlign: isRTL ? "right" : "left",
                   marginTop: SPACING.xs,
                 }}
               >
@@ -72,13 +81,18 @@ const AddClassroomForm = ({ onSubmit, loading, initialValues = null }) => {
           </Form.Field>
 
           <Form.Field error={touched.capacity && !!errors.capacity}>
-            <label style={{ textAlign: "right", color: COLORS.textPrimary }}>
-              السعة
+            <label
+              style={{
+                textAlign: isRTL ? "right" : "left",
+                color: COLORS.textPrimary,
+              }}
+            >
+              {t("capacity")}
             </label>
             <input
               type="number"
               name="capacity"
-              placeholder="عدد الطلاب"
+              placeholder={t("capacity_placeholder")}
               value={values.capacity}
               onChange={handleChange}
               onBlur={handleBlur}
@@ -88,7 +102,7 @@ const AddClassroomForm = ({ onSubmit, loading, initialValues = null }) => {
               <div
                 style={{
                   color: COLORS.error,
-                  textAlign: "right",
+                  textAlign: isRTL ? "right" : "left",
                   marginTop: SPACING.xs,
                 }}
               >
@@ -98,13 +112,18 @@ const AddClassroomForm = ({ onSubmit, loading, initialValues = null }) => {
           </Form.Field>
 
           <Form.Field error={touched.building && !!errors.building}>
-            <label style={{ textAlign: "right", color: COLORS.textPrimary }}>
-              المبنى
+            <label
+              style={{
+                textAlign: isRTL ? "right" : "left",
+                color: COLORS.textPrimary,
+              }}
+            >
+              {t("building")}
             </label>
             <input
               type="text"
               name="building"
-              placeholder="مثال: مبنى العلوم"
+              placeholder={t("building_placeholder")}
               value={values.building}
               onChange={handleChange}
               onBlur={handleBlur}
@@ -114,7 +133,7 @@ const AddClassroomForm = ({ onSubmit, loading, initialValues = null }) => {
               <div
                 style={{
                   color: COLORS.error,
-                  textAlign: "right",
+                  textAlign: isRTL ? "right" : "left",
                   marginTop: SPACING.xs,
                 }}
               >
@@ -129,7 +148,7 @@ const AddClassroomForm = ({ onSubmit, loading, initialValues = null }) => {
             disabled={loading}
             style={buttonStyle}
           >
-            {initialValues ? "تحديث" : "إضافة قاعة"}
+            {initialValues ? t("update") : t("add_classroom_button")}
           </Button>
         </Form>
       )}

@@ -1,4 +1,3 @@
-// src/pages/AdminDashboard.js
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
@@ -13,7 +12,6 @@ import {
   Label,
   Modal,
   Grid,
-  Statistic,
 } from "semantic-ui-react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
@@ -36,10 +34,14 @@ import {
   cleanup as cleanupClassrooms,
 } from "../redux/classroomSlice";
 import { COLORS, SPACING, SHADOWS } from "../utils/designConstants";
+import { useTranslation } from "react-i18next";
 
 const AdminDashboard = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
+  const isRTL = i18n.language === "ar";
+
   const { user, isAuthenticated } = useSelector((state) => state.user);
   const {
     bookings,
@@ -63,21 +65,10 @@ const AdminDashboard = () => {
   const [editClassroom, setEditClassroom] = useState(null);
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      navigate("/login");
-      return;
-    }
-
-    if (user?.role !== "admin") {
-      navigate("/");
-      return;
-    }
-
-    // Subscribe to real-time updates
+    if (!isAuthenticated) navigate("/login");
+    if (user?.role !== "admin") navigate("/");
     dispatch(subscribeToAllBookings());
     dispatch(subscribeToClassrooms());
-
-    // Cleanup on unmount
     return () => {
       dispatch(cleanupBookings());
       dispatch(cleanupClassrooms());
@@ -94,50 +85,8 @@ const AdminDashboard = () => {
     }
   }, [bookingsSuccess, classroomsSuccess, dispatch]);
 
-  const handleApproveBooking = (bookingId) => {
-    setConfirmModal({
-      open: true,
-      type: "approve",
-      data: bookingId,
-      title: "الموافقة على الحجز",
-      message: "هل أنت متأكد من الموافقة على هذا الحجز؟",
-    });
-  };
-
-  const handleRejectBooking = (bookingId) => {
-    setConfirmModal({
-      open: true,
-      type: "reject",
-      data: bookingId,
-      title: "رفض الحجز",
-      message: "هل أنت متأكد من رفض هذا الحجز؟",
-    });
-  };
-
-  const handleDeleteBooking = (bookingId) => {
-    setConfirmModal({
-      open: true,
-      type: "deleteBooking",
-      data: bookingId,
-      title: "حذف الحجز",
-      message: "هل أنت متأكد من حذف هذا الحجز؟ لا يمكن التراجع عن هذا الإجراء.",
-    });
-  };
-
-  const handleDeleteClassroom = (classroomId) => {
-    setConfirmModal({
-      open: true,
-      type: "deleteClassroom",
-      data: classroomId,
-      title: "حذف القاعة",
-      message:
-        "هل أنت متأكد من حذف هذه القاعة؟ لا يمكن التراجع عن هذا الإجراء.",
-    });
-  };
-
   const handleConfirm = () => {
     const { type, data } = confirmModal;
-
     switch (type) {
       case "approve":
         dispatch(updateBookingStatus({ bookingId: data, status: "approved" }));
@@ -154,25 +103,11 @@ const AdminDashboard = () => {
       default:
         break;
     }
-
     setConfirmModal({ open: false, type: "", data: null });
   };
 
-  const handleAddClassroom = (classroomData) => {
-    dispatch(addClassroom(classroomData));
-    setShowAddClassroom(false);
-  };
+  const toggleShowAddClassroom = () => setShowAddClassroom(!showAddClassroom);
 
-  const handleEditClassroom = (classroom) => {
-    setEditClassroom(classroom);
-  };
-
-  const handleUpdateClassroom = (classroomData) => {
-    dispatch(updateClassroom({ classroomId: editClassroom.id, classroomData }));
-    setEditClassroom(null);
-  };
-
-  // Calculate statistics
   const stats = {
     totalBookings: bookings.length,
     pending: bookings.filter((b) => b.status === "pending").length,
@@ -181,86 +116,110 @@ const AdminDashboard = () => {
     totalClassrooms: classrooms.length,
   };
 
-  const containerStyle = {
-    minHeight: "calc(100vh - 200px)",
-    padding: `${SPACING.lg} ${SPACING.md}`,
-    maxWidth: "100%",
-  };
+  const getRoleName = (role) => t(`role_${role}`);
 
-  const headerSegmentStyle = {
-    background: `linear-gradient(135deg, ${COLORS.primaryRed} 0%, ${COLORS.darkRed} 100%)`,
-    color: COLORS.textWhite,
-    padding: SPACING.xl,
-    borderRadius: "12px",
-    boxShadow: SHADOWS.large,
-    marginBottom: SPACING.lg,
-  };
+  // Stats Card Component
+  const StatCard = ({ icon, label, value, color, gradient }) => (
+    <div
+      style={{
+        background:
+          gradient || `linear-gradient(135deg, ${color}15 0%, ${color}25 100%)`,
+        borderRadius: "16px",
+        padding: "clamp(1.5rem, 3vw, 2rem)",
+        border: `2px solid ${color}30`,
+        boxShadow: `0 4px 20px ${color}20`,
+        transition: "all 0.3s ease",
+        cursor: "default",
+        minHeight: "140px",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        alignItems: "center",
+        textAlign: "center",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = "translateY(-5px)";
+        e.currentTarget.style.boxShadow = `0 8px 30px ${color}30`;
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = "translateY(0)";
+        e.currentTarget.style.boxShadow = `0 4px 20px ${color}20`;
+      }}
+    >
+      <div
+        style={{
+          width: "60px",
+          height: "60px",
+          borderRadius: "50%",
+          background: color,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          marginBottom: "1rem",
+          boxShadow: `0 4px 15px ${color}40`,
+        }}
+      >
+        <Icon
+          name={icon}
+          style={{
+            color: "white",
+            fontSize: "1.8rem",
+            margin: 0,
+          }}
+        />
+      </div>
+      <div
+        style={{
+          fontSize: "clamp(2rem, 4vw, 2.5rem)",
+          fontWeight: "800",
+          color: color,
+          marginBottom: "0.3rem",
+          lineHeight: 1,
+        }}
+      >
+        {value}
+      </div>
+      <div
+        style={{
+          fontSize: "clamp(0.85rem, 2vw, 1rem)",
+          color: "#6c757d",
+          fontWeight: "600",
+          textTransform: "uppercase",
+          letterSpacing: "0.5px",
+        }}
+      >
+        {label}
+      </div>
+    </div>
+  );
 
-  const titleStyle = {
-    color: COLORS.textWhite,
-    fontSize: "28px",
-    fontWeight: "bold",
-    marginBottom: SPACING.sm,
-    textAlign: "center",
-  };
-
-  const subtitleStyle = {
-    color: COLORS.textWhite,
-    fontSize: "16px",
-    textAlign: "center",
-    opacity: 0.95,
-  };
-
-  const segmentStyle = {
-    padding: SPACING.lg,
-    boxShadow: SHADOWS.medium,
-    backgroundColor: COLORS.bgLight,
-    borderRadius: "8px",
-    marginBottom: SPACING.md,
-  };
-
-  const buttonStyle = {
-    backgroundColor: COLORS.primaryRed,
-    color: COLORS.textWhite,
-  };
-
-  const statCardStyle = {
-    textAlign: "center",
-    padding: SPACING.lg,
-    backgroundColor: COLORS.bgGray,
-    borderRadius: "8px",
-    boxShadow: SHADOWS.small,
-  };
-
-  // Bookings table columns
+  // Bookings columns with translations
   const bookingsColumns = [
-    { header: "المادة", accessor: "subjectName" },
-    { header: "رقم المادة", accessor: "subjectNumber" },
-    { header: "الشعبة", accessor: "subjectSubNumber" },
-    { header: "القاعة", accessor: "classroomName" },
+    { header: t("subject"), accessor: "subjectName" },
+    { header: t("subject_number"), accessor: "subjectNumber" },
+    { header: t("sub_group"), accessor: "subjectSubNumber" },
+    { header: t("classroom"), accessor: "classroomName" },
     {
-      header: "التاريخ",
+      header: t("date"),
       accessor: "date",
-      render: (row) => {
-        if (row.date?.toDate) {
-          return row.date.toDate().toLocaleDateString("ar-JO");
-        }
-        return row.date || "-";
-      },
+      render: (row) =>
+        row.date?.toDate?.()?.toLocaleDateString(i18n.language) ||
+        row.date ||
+        "-",
     },
     {
-      header: "وقت البداية",
+      header: t("start_time"),
       accessor: "startTime",
       render: (row) => row.startTime || "-",
     },
     {
-      header: "وقت النهاية",
+      header: t("end_time"),
       accessor: "endTime",
       render: (row) => row.endTime || "-",
     },
-    { header: "الدكتور", accessor: "teacherName" },
+    { header: t("teacher"), accessor: "teacherName" },
     {
-      header: "الحالة",
+      header: t("status"),
       accessor: "status",
       render: (row) => {
         const statusColors = {
@@ -269,12 +228,15 @@ const AdminDashboard = () => {
           rejected: "red",
         };
         const statusText = {
-          pending: "قيد الانتظار",
-          approved: "مقبول",
-          rejected: "مرفوض",
+          pending: t("pending"),
+          approved: t("approved"),
+          rejected: t("rejected"),
         };
         return (
-          <Label color={statusColors[row.status]} style={{ direction: "rtl" }}>
+          <Label
+            color={statusColors[row.status]}
+            style={{ direction: i18n.language === "ar" ? "rtl" : "ltr" }}
+          >
             {statusText[row.status]}
           </Label>
         );
@@ -290,15 +252,31 @@ const AdminDashboard = () => {
             icon="check"
             size="small"
             positive
-            onClick={() => handleApproveBooking(row.id)}
-            title="موافقة"
+            onClick={() =>
+              setConfirmModal({
+                open: true,
+                type: "approve",
+                data: row.id,
+                title: t("approve_booking"),
+                message: t("approve_booking_msg"),
+              })
+            }
+            title={t("approve")}
           />
           <Button
             icon="times"
             size="small"
             negative
-            onClick={() => handleRejectBooking(row.id)}
-            title="رفض"
+            onClick={() =>
+              setConfirmModal({
+                open: true,
+                type: "reject",
+                data: row.id,
+                title: t("reject_booking"),
+                message: t("reject_booking_msg"),
+              })
+            }
+            title={t("reject")}
           />
         </>
       )}
@@ -306,17 +284,24 @@ const AdminDashboard = () => {
         icon="trash"
         size="small"
         color="red"
-        onClick={() => handleDeleteBooking(row.id)}
-        title="حذف"
+        onClick={() =>
+          setConfirmModal({
+            open: true,
+            type: "deleteBooking",
+            data: row.id,
+            title: t("delete_booking"),
+            message: t("delete_booking_msg"),
+          })
+        }
+        title={t("delete")}
       />
     </div>
   );
 
-  // Classrooms table columns
   const classroomsColumns = [
-    { header: "اسم القاعة", accessor: "name" },
-    { header: "السعة", accessor: "capacity" },
-    { header: "المبنى", accessor: "building" },
+    { header: t("classroom"), accessor: "name" },
+    { header: t("capacity"), accessor: "capacity" },
+    { header: t("building"), accessor: "building" },
   ];
 
   const classroomsActions = (row) => (
@@ -325,26 +310,34 @@ const AdminDashboard = () => {
         icon="edit"
         size="small"
         primary
-        onClick={() => handleEditClassroom(row)}
-        title="تعديل"
+        onClick={() => setEditClassroom(row)}
+        title={t("edit_classroom")}
       />
       <Button
         icon="trash"
         size="small"
         negative
-        onClick={() => handleDeleteClassroom(row.id)}
-        title="حذف"
+        onClick={() =>
+          setConfirmModal({
+            open: true,
+            type: "deleteClassroom",
+            data: row.id,
+            title: t("delete_classroom"),
+            message: t("delete_classroom_msg"),
+          })
+        }
+        title={t("delete")}
       />
     </div>
   );
 
-  // Tab panes
+  // panes for tabs
   const panes = [
     {
       menuItem: {
         key: "bookings",
         icon: "calendar",
-        content: `الحجوزات (${stats.totalBookings})`,
+        content: `${t("total_bookings")} (${stats.totalBookings})`,
       },
       render: () => (
         <Tab.Pane
@@ -352,7 +345,7 @@ const AdminDashboard = () => {
             border: "none",
             boxShadow: "none",
             padding: SPACING.md,
-            direction: "rtl",
+            direction: isRTL ? "rtl" : "ltr",
           }}
         >
           {bookingsError && (
@@ -360,24 +353,20 @@ const AdminDashboard = () => {
               {bookingsError}
             </Message>
           )}
-
           {bookingsSuccess && (
             <Message positive style={{ textAlign: "center" }}>
               {bookingsSuccess}
             </Message>
           )}
-
           {bookingsLoading ? (
-            <div style={{ textAlign: "center", padding: SPACING.xxl }}>
-              <Loader active inline="centered" size="large">
-                جاري التحميل...
-              </Loader>
-            </div>
+            <Loader active inline="centered" size="large">
+              {t("loading")}
+            </Loader>
           ) : bookings.length === 0 ? (
             <Message info style={{ textAlign: "center" }}>
               <Icon name="inbox" size="huge" />
-              <Message.Header>لا توجد حجوزات</Message.Header>
-              <p>لم يتم إنشاء أي حجوزات بعد</p>
+              <Message.Header>{t("no_bookings")}</Message.Header>
+              <p>{t("no_bookings_msg")}</p>
             </Message>
           ) : (
             <div style={{ overflowX: "auto" }}>
@@ -395,7 +384,7 @@ const AdminDashboard = () => {
       menuItem: {
         key: "classrooms",
         icon: "building",
-        content: `القاعات (${stats.totalClassrooms})`,
+        content: `${t("classrooms")} (${stats.totalClassrooms})`,
       },
       render: () => (
         <Tab.Pane
@@ -403,61 +392,61 @@ const AdminDashboard = () => {
             border: "none",
             boxShadow: "none",
             padding: SPACING.md,
-            direction: "rtl",
+            direction: isRTL ? "rtl" : "ltr",
           }}
         >
           <div style={{ marginBottom: SPACING.md }}>
             <Button
-              style={buttonStyle}
+              style={{
+                backgroundColor: COLORS.primaryRed,
+                color: COLORS.textWhite,
+              }}
               size="large"
-              onClick={() => setShowAddClassroom(!showAddClassroom)}
+              onClick={toggleShowAddClassroom}
             >
               <Icon
                 style={{ marginRight: "0.5rem", marginLeft: "0.5rem" }}
                 name={showAddClassroom ? "minus" : "plus"}
               />
-              {showAddClassroom ? "إخفاء النموذج" : "إضافة قاعة جديدة"}
+              {showAddClassroom ? t("hide_form") : t("add_classroom")}
             </Button>
           </div>
-
           {showAddClassroom && (
             <Segment style={{ marginBottom: SPACING.md, padding: SPACING.lg }}>
               <h3
                 style={{ color: COLORS.primaryRed, marginBottom: SPACING.md }}
               >
                 <Icon name="plus circle" />
-                إضافة قاعة جديدة
+                {t("add_classroom")}
               </h3>
               <AddClassroomForm
-                onSubmit={handleAddClassroom}
+                onSubmit={(data) => {
+                  dispatch(addClassroom(data));
+                  setShowAddClassroom(false);
+                }}
                 loading={classroomsLoading}
               />
             </Segment>
           )}
-
           {classroomsError && (
             <Message negative style={{ textAlign: "center" }}>
               {classroomsError}
             </Message>
           )}
-
           {classroomsSuccess && (
             <Message positive style={{ textAlign: "center" }}>
               {classroomsSuccess}
             </Message>
           )}
-
           {classroomsLoading ? (
-            <div style={{ textAlign: "center", padding: SPACING.xxl }}>
-              <Loader active inline="centered" size="large">
-                جاري التحميل...
-              </Loader>
-            </div>
+            <Loader active inline="centered" size="large">
+              {t("loading")}
+            </Loader>
           ) : classrooms.length === 0 ? (
             <Message info style={{ textAlign: "center" }}>
               <Icon name="building outline" size="huge" />
-              <Message.Header>لا توجد قاعات</Message.Header>
-              <p>قم بإضافة قاعة جديدة للبدء</p>
+              <Message.Header>{t("no_classrooms")}</Message.Header>
+              <p>{t("no_classrooms_msg")}</p>
             </Message>
           ) : (
             <div style={{ overflowX: "auto" }}>
@@ -474,97 +463,167 @@ const AdminDashboard = () => {
   ];
 
   return (
-    <>
-      <Header />
-      <Container fluid style={containerStyle}>
-        {/* Header Section */}
-        <Segment style={headerSegmentStyle}>
-          <h1 style={titleStyle}>
-            <Icon name="shield" />
-            لوحة التحكم - الإدارة
-          </h1>
-          <p style={subtitleStyle}>
-            مرحباً {user?.name}، إدارة الحجوزات والقاعات الدراسية
-          </p>
-        </Segment>
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        direction: isRTL ? "rtl" : "ltr",
+        backgroundColor: "#f8f9fa",
+      }}
+    >
+      {/* Sticky Header */}
+      <div
+        style={{
+          position: "sticky",
+          top: 0,
+          zIndex: 1000,
+          boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+        }}
+      >
+        <Header />
+      </div>
 
-        {/* Statistics Cards */}
-        <Grid columns={5} stackable style={{ marginBottom: SPACING.lg }}>
-          <Grid.Column>
-            <div style={statCardStyle}>
-              <Statistic size="small">
-                <Statistic.Value style={{ color: COLORS.primaryRed }}>
-                  <Icon name="calendar alternate" />
-                  {stats.totalBookings}
-                </Statistic.Value>
-                <Statistic.Label>إجمالي الحجوزات</Statistic.Label>
-              </Statistic>
-            </div>
-          </Grid.Column>
-          <Grid.Column>
-            <div style={statCardStyle}>
-              <Statistic size="small">
-                <Statistic.Value style={{ color: COLORS.pending }}>
-                  <Icon name="clock" />
-                  {stats.pending}
-                </Statistic.Value>
-                <Statistic.Label>قيد الانتظار</Statistic.Label>
-              </Statistic>
-            </div>
-          </Grid.Column>
-          <Grid.Column>
-            <div style={statCardStyle}>
-              <Statistic size="small">
-                <Statistic.Value style={{ color: COLORS.success }}>
-                  <Icon name="check circle" />
-                  {stats.approved}
-                </Statistic.Value>
-                <Statistic.Label>مقبولة</Statistic.Label>
-              </Statistic>
-            </div>
-          </Grid.Column>
-          <Grid.Column>
-            <div style={statCardStyle}>
-              <Statistic size="small">
-                <Statistic.Value style={{ color: COLORS.error }}>
-                  <Icon name="times circle" />
-                  {stats.rejected}
-                </Statistic.Value>
-                <Statistic.Label>مرفوضة</Statistic.Label>
-              </Statistic>
-            </div>
-          </Grid.Column>
-          <Grid.Column>
-            <div style={statCardStyle}>
-              <Statistic size="small">
-                <Statistic.Value style={{ color: COLORS.primaryRed }}>
-                  <Icon name="building" />
-                  {stats.totalClassrooms}
-                </Statistic.Value>
-                <Statistic.Label>القاعات</Statistic.Label>
-              </Statistic>
-            </div>
-          </Grid.Column>
-        </Grid>
-
-        {/* Main Content */}
-        <Segment style={segmentStyle}>
-          <Tab
-            panes={panes}
-            style={{ direction: "rtl" }}
-            menu={{
-              secondary: true,
-              pointing: true,
-              style: {
-                direction: "rtl",
-                borderBottom: `3px solid ${COLORS.primaryRed}`,
-              },
+      {/* Main Content */}
+      <div style={{ flex: 1, padding: "clamp(1.5rem, 4vw, 3rem) 0" }}>
+        <Container style={{ maxWidth: "1400px", padding: "0 1rem" }}>
+          {/* Welcome Banner */}
+          <div
+            style={{
+              background: `linear-gradient(135deg, ${COLORS.primaryRed} 0%, #c41e3a 100%)`,
+              borderRadius: "20px",
+              padding: "clamp(2rem, 4vw, 3rem)",
+              marginBottom: "clamp(1.5rem, 3vw, 2rem)",
+              boxShadow: "0 10px 40px rgba(139, 0, 0, 0.2)",
+              position: "relative",
+              overflow: "hidden",
             }}
-          />
-        </Segment>
-      </Container>
+          >
+            {/* Decorative elements */}
+            <div
+              style={{
+                position: "absolute",
+                top: "-50px",
+                [isRTL ? "right" : "left"]: "-50px",
+                width: "200px",
+                height: "200px",
+                borderRadius: "50%",
+                background: "rgba(255,255,255,0.1)",
+                pointerEvents: "none",
+              }}
+            />
+            <div
+              style={{
+                position: "absolute",
+                bottom: "-80px",
+                [isRTL ? "left" : "right"]: "-80px",
+                width: "250px",
+                height: "250px",
+                borderRadius: "50%",
+                background: "rgba(255,255,255,0.08)",
+                pointerEvents: "none",
+              }}
+            />
 
-      {/* Confirm Modal */}
+            <div
+              style={{ position: "relative", zIndex: 1, textAlign: "center" }}
+            >
+              <h1
+                style={{
+                  color: COLORS.textWhite,
+                  fontSize: "clamp(1.8rem, 4vw, 2.5rem)",
+                  fontWeight: "800",
+                  marginBottom: "0.5rem",
+                  textShadow: "0 2px 10px rgba(0,0,0,0.2)",
+                }}
+              >
+                <Icon name="shield" style={{ marginRight: "0.5rem" }} />
+                {t("dashboard_admin")} 🛡️
+              </h1>
+              <p
+                style={{
+                  color: "rgba(255,255,255,0.95)",
+                  fontSize: "clamp(1rem, 2.5vw, 1.2rem)",
+                  margin: 0,
+                  fontWeight: "300",
+                }}
+              >
+                {t("welcome_admin", { name: user?.name })}
+              </p>
+            </div>
+          </div>
+
+          {/* Statistics Cards */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+              gap: "clamp(1rem, 2vw, 1.5rem)",
+              marginBottom: "clamp(1.5rem, 3vw, 2rem)",
+            }}
+          >
+            <StatCard
+              icon="calendar alternate"
+              label={t("total_bookings")}
+              value={stats.totalBookings}
+              color={COLORS.primaryRed}
+            />
+            <StatCard
+              icon="clock outline"
+              label={t("pending")}
+              value={stats.pending}
+              color="#ffc107"
+            />
+            <StatCard
+              icon="check circle"
+              label={t("approved")}
+              value={stats.approved}
+              color="#28a745"
+            />
+            <StatCard
+              icon="times circle"
+              label={t("rejected")}
+              value={stats.rejected}
+              color="#dc3545"
+            />
+            <StatCard
+              icon="building"
+              label={t("classrooms")}
+              value={stats.totalClassrooms}
+              color="#007bff"
+            />
+          </div>
+
+          {/* Tabs Section */}
+          <div
+            style={{
+              backgroundColor: COLORS.bgLight,
+              borderRadius: "20px",
+              padding: "clamp(1.5rem, 3vw, 2.5rem)",
+              boxShadow: "0 5px 25px rgba(0,0,0,0.08)",
+              border: "1px solid rgba(0,0,0,0.05)",
+            }}
+          >
+            <Tab
+              panes={panes}
+              menu={{
+                secondary: true,
+                pointing: true,
+                style: {
+                  direction: isRTL ? "rtl" : "ltr",
+                  borderBottom: `3px solid ${COLORS.primaryRed}`,
+                  marginBottom: "1.5rem",
+                },
+              }}
+            />
+          </div>
+        </Container>
+      </div>
+
+      {/* Footer */}
+      <Footer />
+
+      {/* Modals */}
       <ConfirmModal
         open={confirmModal.open}
         onClose={() => setConfirmModal({ open: false, type: "", data: null })}
@@ -574,36 +633,41 @@ const AdminDashboard = () => {
         loading={bookingsLoading || classroomsLoading}
       />
 
-      {/* Edit Classroom Modal */}
-      <Modal
-        open={!!editClassroom}
-        onClose={() => setEditClassroom(null)}
-        size="small"
-        style={{ direction: "rtl" }}
-      >
-        <Modal.Header
-          style={{
-            backgroundColor: COLORS.primaryRed,
-            color: COLORS.textWhite,
-            textAlign: "right",
-          }}
+      {editClassroom && (
+        <Modal
+          open={!!editClassroom}
+          onClose={() => setEditClassroom(null)}
+          size="small"
+          style={{ direction: isRTL ? "rtl" : "ltr" }}
         >
-          <Icon name="edit" />
-          تعديل القاعة
-        </Modal.Header>
-        <Modal.Content style={{ padding: SPACING.xl }}>
-          {editClassroom && (
+          <Modal.Header
+            style={{
+              backgroundColor: COLORS.primaryRed,
+              color: COLORS.textWhite,
+              textAlign: isRTL ? "right" : "left",
+            }}
+          >
+            <Icon name="edit" />
+            {t("edit_classroom")}
+          </Modal.Header>
+          <Modal.Content style={{ padding: SPACING.xl }}>
             <AddClassroomForm
-              onSubmit={handleUpdateClassroom}
+              onSubmit={(data) => {
+                dispatch(
+                  updateClassroom({
+                    classroomId: editClassroom.id,
+                    classroomData: data,
+                  })
+                );
+                setEditClassroom(null);
+              }}
               loading={classroomsLoading}
               initialValues={editClassroom}
             />
-          )}
-        </Modal.Content>
-      </Modal>
-
-      <Footer />
-    </>
+          </Modal.Content>
+        </Modal>
+      )}
+    </div>
   );
 };
 
