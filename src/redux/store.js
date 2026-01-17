@@ -16,6 +16,7 @@ import bookingReducer from "./bookingSlice";
 import classroomReducer from "./classroomSlice";
 import modalReducer from "./modalSlice";
 import teacherSubjectsReducer from "./teacherSubjectsSlice";
+import maintenanceReducer from "./maintenanceSlice";
 
 const userPersistConfig = {
   key: "user",
@@ -29,6 +30,7 @@ const rootReducer = combineReducers({
   classrooms: classroomReducer,
   modals: modalReducer,
   teacherSubjects: teacherSubjectsReducer,
+  maintenance: maintenanceReducer,
 });
 
 const store = configureStore({
@@ -36,7 +38,25 @@ const store = configureStore({
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {
-        ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
+        ignoredActions: [
+          FLUSH,
+          REHYDRATE,
+          PAUSE,
+          PERSIST,
+          PURGE,
+          REGISTER,
+          "bookings/subscribeToAllBookings/fulfilled",
+          "bookings/subscribeToStudentBookings/fulfilled",
+          "bookings/subscribeToTeacherBookings/fulfilled",
+          "classrooms/subscribeToClassrooms/fulfilled",
+          "maintenance/subscribeToAllComplaints/fulfilled",
+          "maintenance/subscribeToUserComplaints/fulfilled",
+        ],
+        ignoredPaths: [
+          "bookings.unsubscribe",
+          "classrooms.unsubscribe",
+          "maintenance.unsubscribe",
+        ],
       },
     }),
 });

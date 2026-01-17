@@ -1,8 +1,10 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
-import { Button, Icon } from "semantic-ui-react";
+import { Button, Icon, Modal } from "semantic-ui-react";
 import { logoutUser } from "../redux/userSlice";
+import { createComplaint } from "../redux/maintenanceSlice";
+import MaintenanceComplaintForm from "../forms/MaintenanceComplaintForm";
 import { COLORS } from "../utils/designConstants";
 import { useTranslation } from "react-i18next";
 
@@ -11,8 +13,13 @@ const Header = () => {
   const dispatch = useDispatch();
   const { i18n, t } = useTranslation();
   const { user, isAuthenticated } = useSelector((state) => state.user);
+  const { loading: maintenanceLoading } = useSelector(
+    (state) => state.maintenance
+  );
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [complaintModalOpen, setComplaintModalOpen] = useState(false);
+  const isRTL = i18n.language === "ar";
 
   const handleLogout = () => {
     dispatch(logoutUser());
@@ -39,6 +46,8 @@ const Header = () => {
         return "/teacher";
       case "admin":
         return "/admin";
+      case "maintenance":
+        return "/maintenance";
       default:
         return "/";
     }
@@ -49,351 +58,434 @@ const Header = () => {
     setMobileMenuOpen(false);
   };
 
+  const handleComplaintSubmit = (complaintData) => {
+    dispatch(createComplaint(complaintData)).then((result) => {
+      if (!result.error) {
+        setComplaintModalOpen(false);
+      }
+    });
+  };
+
   return (
-    <header
-      style={{
-        background: `linear-gradient(135deg, ${COLORS.primaryRed} 0%, #a01820 100%)`,
-        boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
-        position: "relative",
-        zIndex: 1000,
-      }}
-    >
-      <div
+    <>
+      <header
         style={{
-          maxWidth: "1600px",
-          margin: "0 auto",
-          padding: "0 clamp(1rem, 3vw, 2rem)",
+          background: `linear-gradient(135deg, ${COLORS.primaryRed} 0%, #a01820 100%)`,
+          boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+          position: "relative",
+          zIndex: 1000,
         }}
       >
-        <nav
+        <div
           style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            minHeight: "70px",
-            gap: "1rem",
+            maxWidth: "1600px",
+            margin: "0 auto",
+            padding: "0 clamp(1rem, 3vw, 2rem)",
           }}
         >
-          {/* Logo Section */}
-          <div
-            onClick={() => !isAuthenticated && navigate("/")}
+          <nav
             style={{
               display: "flex",
               alignItems: "center",
-              gap: "0.8rem",
-              color: COLORS.textWhite,
-              cursor: isAuthenticated ? "default" : "pointer",
-              transition: "opacity 0.3s ease",
-              flex: "0 0 auto",
+              justifyContent: "space-between",
+              minHeight: "70px",
+              gap: "1rem",
             }}
           >
+            {/* Logo Section */}
             <div
+              onClick={() => !isAuthenticated && navigate("/")}
               style={{
-                width: "42px",
-                height: "42px",
-                borderRadius: "10px",
-                background: "rgba(255,255,255,0.2)",
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "center",
-                backdropFilter: "blur(10px)",
-                flexShrink: 0,
+                gap: "0.8rem",
+                color: COLORS.textWhite,
+                cursor: isAuthenticated ? "default" : "pointer",
+                transition: "opacity 0.3s ease",
+                flex: "0 0 auto",
               }}
             >
-              <Icon
-                name="university"
+              <div
                 style={{
-                  fontSize: "1.5rem",
-                  margin: 0,
-                  color: COLORS.textWhite,
+                  width: "42px",
+                  height: "42px",
+                  borderRadius: "10px",
+                  background: "rgba(255,255,255,0.2)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backdropFilter: "blur(10px)",
+                  flexShrink: 0,
                 }}
-              />
+              >
+                <Icon
+                  name="university"
+                  style={{
+                    fontSize: "1.5rem",
+                    margin: 0,
+                    color: COLORS.textWhite,
+                  }}
+                />
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "0.1rem",
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: "clamp(1rem, 2.5vw, 1.3rem)",
+                    fontWeight: "800",
+                    lineHeight: 1.2,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {t("university")}
+                </span>
+                <span
+                  style={{
+                    fontSize: "clamp(0.75rem, 2vw, 0.9rem)",
+                    fontWeight: "400",
+                    opacity: 0.95,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {t("examSystem")}
+                </span>
+              </div>
             </div>
+
+            {/* Desktop Menu */}
             <div
               style={{
                 display: "flex",
-                flexDirection: "column",
-                gap: "0.1rem",
+                alignItems: "center",
+                gap: "1.5rem",
+                flex: "0 0 auto",
               }}
             >
-              <span
+              {/* Language Switch */}
+              <button
+                onClick={toggleLanguage}
                 style={{
-                  fontSize: "clamp(1rem, 2.5vw, 1.3rem)",
-                  fontWeight: "800",
-                  lineHeight: 1.2,
+                  background: "rgba(255,255,255,0.15)",
+                  border: "2px solid rgba(255,255,255,0.2)",
+                  color: COLORS.textWhite,
+                  padding: "0.5rem 1rem",
+                  borderRadius: "10px",
+                  fontWeight: "700",
+                  cursor: "pointer",
+                  transition: "all 0.3s ease",
                   whiteSpace: "nowrap",
                 }}
               >
-                {t("university")}
-              </span>
-              <span
-                style={{
-                  fontSize: "clamp(0.75rem, 2vw, 0.9rem)",
-                  fontWeight: "400",
-                  opacity: 0.95,
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {t("examSystem")}
-              </span>
-            </div>
-          </div>
+                {i18n.language === "ar" ? "EN" : "AR"}
+              </button>
 
-          {/* Desktop Menu */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "1.5rem",
-              flex: "0 0 auto",
-            }}
-          >
-            {/* Language Switch */}
-            <button
-              onClick={toggleLanguage}
-              style={{
-                background: "rgba(255,255,255,0.15)",
-                border: "2px solid rgba(255,255,255,0.2)",
-                color: COLORS.textWhite,
-                padding: "0.5rem 1rem",
-                borderRadius: "10px",
-                fontWeight: "700",
-                cursor: "pointer",
-                transition: "all 0.3s ease",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {i18n.language === "ar" ? "EN" : "AR"}
-            </button>
-
-            {!isAuthenticated ? (
-              <>
-                <button
-                  onClick={() => navigate("/")}
-                  style={{
-                    display: window.innerWidth < 768 ? "none" : "flex",
-                    alignItems: "center",
-                    gap: "0.6rem",
-                    background: "transparent",
-                    border: "none",
-                    color: COLORS.textWhite,
-                    fontSize: "1rem",
-                    fontWeight: "600",
-                    padding: "0.6rem 1rem",
-                    borderRadius: "8px",
-                    cursor: "pointer",
-                    transition: "all 0.3s ease",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  <Icon name="home" style={{ margin: 0, fontSize: "1.1rem" }} />
-                  <span
-                    style={{
-                      display: window.innerWidth < 768 ? "none" : "inline",
-                    }}
-                  >
-                    {t("home")}
-                  </span>
-                </button>
-
-                <Button
-                  onClick={() => navigate("/login")}
-                  style={{
-                    background: COLORS.textWhite,
-                    color: COLORS.primaryRed,
-                    fontWeight: "700",
-                    fontSize: "1rem",
-                    padding: "0.7rem 1.8rem",
-                    borderRadius: "10px",
-                    border: "none",
-                    boxShadow: "0 4px 15px rgba(0,0,0,0.2)",
-                    transition: "all 0.3s ease",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.6rem",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  <Icon name="sign in" style={{ margin: 0 }} />
-                  {t("login")}
-                </Button>
-              </>
-            ) : (
-              <>
-                {/* Dashboard Button */}
-                <button
-                  onClick={navigateToDashboard}
-                  style={{
-                    display: window.innerWidth < 768 ? "none" : "flex",
-                    alignItems: "center",
-                    gap: "0.6rem",
-                    background: "transparent",
-                    border: "none",
-                    color: COLORS.textWhite,
-                    fontSize: "1rem",
-                    fontWeight: "600",
-                    padding: "0.6rem 1rem",
-                    borderRadius: "8px",
-                    cursor: "pointer",
-                    transition: "all 0.3s ease",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  <Icon
-                    name="dashboard"
-                    style={{ margin: 0, fontSize: "1.1rem" }}
-                  />
-                  {t("dashboard")}
-                </button>
-
-                {/* User Dropdown */}
-                <div
-                  style={{
-                    position: "relative",
-                    display: window.innerWidth < 768 ? "none" : "block",
-                  }}
-                >
+              {!isAuthenticated ? (
+                <>
                   <button
-                    onClick={() => setDropdownOpen(!dropdownOpen)}
+                    onClick={() => navigate("/")}
                     style={{
-                      display: "flex",
+                      display: window.innerWidth < 768 ? "none" : "flex",
                       alignItems: "center",
-                      gap: "0.8rem",
-                      background: "rgba(255,255,255,0.15)",
-                      border: "2px solid rgba(255,255,255,0.2)",
+                      gap: "0.6rem",
+                      background: "transparent",
+                      border: "none",
                       color: COLORS.textWhite,
-                      padding: "0.5rem 1rem",
-                      borderRadius: "12px",
+                      fontSize: "1rem",
+                      fontWeight: "600",
+                      padding: "0.6rem 1rem",
+                      borderRadius: "8px",
                       cursor: "pointer",
                       transition: "all 0.3s ease",
                       whiteSpace: "nowrap",
                     }}
                   >
                     <Icon
-                      name="user circle"
-                      style={{ margin: 0, fontSize: "1.8rem" }}
+                      name="home"
+                      style={{ margin: 0, fontSize: "1.1rem" }}
                     />
-                    <div
+                    <span
                       style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "flex-start",
-                        gap: "0.1rem",
+                        display: window.innerWidth < 768 ? "none" : "inline",
                       }}
                     >
-                      <span
-                        style={{
-                          fontWeight: "700",
-                          fontSize: "0.95rem",
-                          lineHeight: 1.2,
-                        }}
-                      >
-                        {user?.name}
-                      </span>
-                      <span
-                        style={{
-                          fontSize: "0.75rem",
-                          opacity: 0.9,
-                          fontWeight: "500",
-                        }}
-                      >
-                        {getRoleName(user?.role)}
-                      </span>
-                    </div>
-                    <Icon
-                      name={dropdownOpen ? "chevron up" : "chevron down"}
-                      style={{ margin: 0, fontSize: "0.9rem" }}
-                    />
+                      {t("home")}
+                    </span>
                   </button>
 
-                  {dropdownOpen && (
-                    <>
-                      <div
-                        onClick={() => setDropdownOpen(false)}
+                  <Button
+                    onClick={() => navigate("/login")}
+                    style={{
+                      background: COLORS.textWhite,
+                      color: COLORS.primaryRed,
+                      fontWeight: "700",
+                      fontSize: "1rem",
+                      padding: "0.7rem 1.8rem",
+                      borderRadius: "10px",
+                      border: "none",
+                      boxShadow: "0 4px 15px rgba(0,0,0,0.2)",
+                      transition: "all 0.3s ease",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.6rem",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    <Icon name="sign in" style={{ margin: 0 }} />
+                    {t("login")}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  {/* Maintenance Report Button - Available for all logged-in users except maintenance */}
+                  {user?.role !== "maintenance" && (
+                    <button
+                      onClick={() => setComplaintModalOpen(true)}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.6rem",
+                        background: "rgba(255,193,7,0.2)",
+                        border: "2px solid rgba(255,193,7,0.4)",
+                        color: COLORS.textWhite,
+                        fontSize: "1rem",
+                        fontWeight: "600",
+                        padding: "0.6rem 1.2rem",
+                        borderRadius: "10px",
+                        cursor: "pointer",
+                        transition: "all 0.3s ease",
+                        whiteSpace: "nowrap",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.background = "rgba(255,193,7,0.3)";
+                        e.target.style.borderColor = "rgba(255,193,7,0.6)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.background = "rgba(255,193,7,0.2)";
+                        e.target.style.borderColor = "rgba(255,193,7,0.4)";
+                      }}
+                    >
+                      <Icon
+                        name="wrench"
+                        style={{ margin: 0, fontSize: "1.1rem" }}
+                      />
+                      <span
                         style={{
-                          position: "fixed",
-                          top: 0,
-                          left: 0,
-                          right: 0,
-                          bottom: 0,
-                          zIndex: 999,
+                          display: window.innerWidth < 992 ? "none" : "inline",
                         }}
+                      >
+                        {t("report_maintenance")}
+                      </span>
+                    </button>
+                  )}
+
+                  {/* Dashboard Button */}
+                  <button
+                    onClick={navigateToDashboard}
+                    style={{
+                      display: window.innerWidth < 768 ? "none" : "flex",
+                      alignItems: "center",
+                      gap: "0.6rem",
+                      background: "transparent",
+                      border: "none",
+                      color: COLORS.textWhite,
+                      fontSize: "1rem",
+                      fontWeight: "600",
+                      padding: "0.6rem 1rem",
+                      borderRadius: "8px",
+                      cursor: "pointer",
+                      transition: "all 0.3s ease",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    <Icon
+                      name="dashboard"
+                      style={{ margin: 0, fontSize: "1.1rem" }}
+                    />
+                    {t("dashboard")}
+                  </button>
+
+                  {/* User Dropdown */}
+                  <div
+                    style={{
+                      position: "relative",
+                      display: window.innerWidth < 768 ? "none" : "block",
+                    }}
+                  >
+                    <button
+                      onClick={() => setDropdownOpen(!dropdownOpen)}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.8rem",
+                        background: "rgba(255,255,255,0.15)",
+                        border: "2px solid rgba(255,255,255,0.2)",
+                        color: COLORS.textWhite,
+                        padding: "0.5rem 1rem",
+                        borderRadius: "12px",
+                        cursor: "pointer",
+                        transition: "all 0.3s ease",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      <Icon
+                        name="user circle"
+                        style={{ margin: 0, fontSize: "1.8rem" }}
                       />
                       <div
                         style={{
-                          position: "absolute",
-                          top: "calc(100% + 0.5rem)",
-                          right: 0,
-                          background: "white",
-                          borderRadius: "12px",
-                          boxShadow: "0 10px 40px rgba(0,0,0,0.2)",
-                          minWidth: "200px",
-                          overflow: "hidden",
-                          zIndex: 1000,
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "flex-start",
+                          gap: "0.1rem",
                         }}
                       >
-                        <button
-                          onClick={navigateToDashboard}
+                        <span
                           style={{
-                            width: "100%",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "0.8rem",
-                            padding: "1rem 1.2rem",
-                            background: "transparent",
-                            border: "none",
-                            cursor: "pointer",
-                            transition: "all 0.2s ease",
+                            fontWeight: "700",
                             fontSize: "0.95rem",
-                            fontWeight: "600",
-                            color: COLORS.textPrimary,
+                            lineHeight: 1.2,
                           }}
                         >
-                          <Icon
-                            name="user"
-                            style={{ margin: 0, color: COLORS.primaryRed }}
-                          />
-                          {t("profile")}
-                        </button>
-
-                        <div
+                          {user?.name}
+                        </span>
+                        <span
                           style={{
-                            height: "1px",
-                            background: "#e9ecef",
-                            margin: "0 0.8rem",
+                            fontSize: "0.75rem",
+                            opacity: 0.9,
+                            fontWeight: "500",
+                          }}
+                        >
+                          {getRoleName(user?.role)}
+                        </span>
+                      </div>
+                      <Icon
+                        name={dropdownOpen ? "chevron up" : "chevron down"}
+                        style={{ margin: 0, fontSize: "0.9rem" }}
+                      />
+                    </button>
+
+                    {dropdownOpen && (
+                      <>
+                        <div
+                          onClick={() => setDropdownOpen(false)}
+                          style={{
+                            position: "fixed",
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            zIndex: 999,
                           }}
                         />
-
-                        <button
-                          onClick={handleLogout}
+                        <div
                           style={{
-                            width: "100%",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "0.8rem",
-                            padding: "1rem 1.2rem",
-                            background: "transparent",
-                            border: "none",
-                            cursor: "pointer",
-                            transition: "all 0.2s ease",
-                            fontSize: "0.95rem",
-                            fontWeight: "600",
-                            color: "#dc3545",
+                            position: "absolute",
+                            top: "calc(100% + 0.5rem)",
+                            right: 0,
+                            background: "white",
+                            borderRadius: "12px",
+                            boxShadow: "0 10px 40px rgba(0,0,0,0.2)",
+                            minWidth: "200px",
+                            overflow: "hidden",
+                            zIndex: 1000,
                           }}
                         >
-                          <Icon name="sign out" style={{ margin: 0 }} />
-                          {t("logout")}
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-        </nav>
-      </div>
-    </header>
+                          <button
+                            onClick={navigateToDashboard}
+                            style={{
+                              width: "100%",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "0.8rem",
+                              padding: "1rem 1.2rem",
+                              background: "transparent",
+                              border: "none",
+                              cursor: "pointer",
+                              transition: "all 0.2s ease",
+                              fontSize: "0.95rem",
+                              fontWeight: "600",
+                              color: COLORS.textPrimary,
+                            }}
+                          >
+                            <Icon
+                              name="user"
+                              style={{ margin: 0, color: COLORS.primaryRed }}
+                            />
+                            {t("profile")}
+                          </button>
+
+                          <div
+                            style={{
+                              height: "1px",
+                              background: "#e9ecef",
+                              margin: "0 0.8rem",
+                            }}
+                          />
+
+                          <button
+                            onClick={handleLogout}
+                            style={{
+                              width: "100%",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "0.8rem",
+                              padding: "1rem 1.2rem",
+                              background: "transparent",
+                              border: "none",
+                              cursor: "pointer",
+                              transition: "all 0.2s ease",
+                              fontSize: "0.95rem",
+                              fontWeight: "600",
+                              color: "#dc3545",
+                            }}
+                          >
+                            <Icon name="sign out" style={{ margin: 0 }} />
+                            {t("logout")}
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          </nav>
+        </div>
+      </header>
+
+      {/* Maintenance Complaint Modal */}
+      <Modal
+        open={complaintModalOpen}
+        onClose={() => setComplaintModalOpen(false)}
+        size="small"
+        style={{ direction: isRTL ? "rtl" : "ltr" }}
+      >
+        <Modal.Header
+          style={{
+            backgroundColor: "#ffc107",
+            color: COLORS.textPrimary,
+            textAlign: isRTL ? "right" : "left",
+            fontSize: "1.3rem",
+            fontWeight: "700",
+          }}
+        >
+          <Icon name="wrench" />
+          {t("report_maintenance")}
+        </Modal.Header>
+        <Modal.Content style={{ padding: "2rem" }}>
+          <MaintenanceComplaintForm
+            onSubmit={handleComplaintSubmit}
+            loading={maintenanceLoading}
+            onClose={() => setComplaintModalOpen(false)}
+          />
+        </Modal.Content>
+      </Modal>
+    </>
   );
 };
 

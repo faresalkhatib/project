@@ -15,12 +15,17 @@ const RegistrationForm = () => {
   const { loading } = useSelector((state) => state.user);
   const { t, i18n } = useTranslation();
   const [showAdminCode, setShowAdminCode] = useState(false);
+  const [showTeacherCode, setShowTeacherCode] = useState(false);
+  const [showMaintenanceCode, setShowMaintenanceCode] = useState(false);
 
   const ADMIN_SECRET_CODE = "MUTAH2024ADMIN";
+  const TEACHER_SECRET_CODE = "MUTAH2024TEACHER";
+  const MAINTENANCE_SECRET_CODE = "MUTAH2024MAINTENANCE";
 
   const roleOptions = [
     { key: "student", text: t("student"), value: "student" },
     { key: "teacher", text: t("teacher"), value: "teacher" },
+    { key: "maintenance", text: t("maintenance"), value: "maintenance" },
     { key: "admin", text: t("admin"), value: "admin" },
   ];
 
@@ -39,6 +44,16 @@ const RegistrationForm = () => {
       then: (schema) => schema.required(t("admin_code_required")),
       otherwise: (schema) => schema.notRequired(),
     }),
+    teacherCode: Yup.string().when("role", {
+      is: "teacher",
+      then: (schema) => schema.required(t("teacher_code_required")),
+      otherwise: (schema) => schema.notRequired(),
+    }),
+    maintenanceCode: Yup.string().when("role", {
+      is: "maintenance",
+      then: (schema) => schema.required(t("maintenance_code_required")),
+      otherwise: (schema) => schema.notRequired(),
+    }),
   });
 
   const handleSubmit = (values, { setFieldError }) => {
@@ -46,7 +61,27 @@ const RegistrationForm = () => {
       setFieldError("adminCode", t("admin_code_invalid"));
       return;
     }
-    const { confirmPassword, adminCode, ...userData } = values;
+    if (
+      values.role === "teacher" &&
+      values.teacherCode !== TEACHER_SECRET_CODE
+    ) {
+      setFieldError("teacherCode", t("teacher_code_invalid"));
+      return;
+    }
+    if (
+      values.role === "maintenance" &&
+      values.maintenanceCode !== MAINTENANCE_SECRET_CODE
+    ) {
+      setFieldError("maintenanceCode", t("maintenance_code_invalid"));
+      return;
+    }
+    const {
+      confirmPassword,
+      adminCode,
+      teacherCode,
+      maintenanceCode,
+      ...userData
+    } = values;
     dispatch(registerUser(userData));
   };
 
@@ -81,6 +116,8 @@ const RegistrationForm = () => {
         confirmPassword: "",
         role: "student",
         adminCode: "",
+        teacherCode: "",
+        maintenanceCode: "",
         registeredSubjects: [],
       }}
       validationSchema={validationSchema}
@@ -246,6 +283,8 @@ const RegistrationForm = () => {
                 onChange={(e, { value }) => {
                   setFieldValue("role", value);
                   setShowAdminCode(value === "admin");
+                  setShowTeacherCode(value === "teacher");
+                  setShowMaintenanceCode(value === "maintenance");
                 }}
                 style={inputStyle}
               />
@@ -265,7 +304,7 @@ const RegistrationForm = () => {
             {/* Admin Code */}
             {showAdminCode && (
               <>
-                <Message warning style={{ textAlign: inputStyle.textAlign }}>
+                <Message info style={{ textAlign: inputStyle.textAlign }}>
                   <Message.Header>{t("admin_warning")}</Message.Header>
                   <p>{t("admin_warning_msg")}</p>
                 </Message>
@@ -296,6 +335,88 @@ const RegistrationForm = () => {
                       }}
                     >
                       {errors.adminCode}
+                    </div>
+                  )}
+                </Form.Field>
+              </>
+            )}
+
+            {/* Teacher Code */}
+            {showTeacherCode && (
+              <>
+                <Message info style={{ textAlign: inputStyle.textAlign }}>
+                  <Message.Header>{t("teacher_warning")}</Message.Header>
+                  <p>{t("teacher_warning_msg")}</p>
+                </Message>
+                <Form.Field error={touched.teacherCode && !!errors.teacherCode}>
+                  <label
+                    style={{
+                      textAlign: inputStyle.textAlign,
+                      color: COLORS.textPrimary,
+                    }}
+                  >
+                    {t("teacher_code")}
+                  </label>
+                  <input
+                    type="password"
+                    name="teacherCode"
+                    placeholder={t("teacher_code_placeholder")}
+                    value={values.teacherCode}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
+                    style={inputStyle}
+                  />
+                  {touched.teacherCode && errors.teacherCode && (
+                    <div
+                      style={{
+                        color: COLORS.error,
+                        textAlign: inputStyle.textAlign,
+                        marginTop: SPACING.xs,
+                      }}
+                    >
+                      {errors.teacherCode}
+                    </div>
+                  )}
+                </Form.Field>
+              </>
+            )}
+
+            {/* Maintenance Code */}
+            {showMaintenanceCode && (
+              <>
+                <Message info style={{ textAlign: inputStyle.textAlign }}>
+                  <Message.Header>{t("maintenance_warning")}</Message.Header>
+                  <p>{t("maintenance_warning_msg")}</p>
+                </Message>
+                <Form.Field
+                  error={touched.maintenanceCode && !!errors.maintenanceCode}
+                >
+                  <label
+                    style={{
+                      textAlign: inputStyle.textAlign,
+                      color: COLORS.textPrimary,
+                    }}
+                  >
+                    {t("maintenance_code")}
+                  </label>
+                  <input
+                    type="password"
+                    name="maintenanceCode"
+                    placeholder={t("maintenance_code_placeholder")}
+                    value={values.maintenanceCode}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
+                    style={inputStyle}
+                  />
+                  {touched.maintenanceCode && errors.maintenanceCode && (
+                    <div
+                      style={{
+                        color: COLORS.error,
+                        textAlign: inputStyle.textAlign,
+                        marginTop: SPACING.xs,
+                      }}
+                    >
+                      {errors.maintenanceCode}
                     </div>
                   )}
                 </Form.Field>

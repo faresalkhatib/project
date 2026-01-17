@@ -1,91 +1,102 @@
 // src/pages/RegisterPage.js
 import React, { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { Container, Grid, Segment, Message } from "semantic-ui-react";
+import { useNavigate } from "react-router-dom";
+import { Container, Segment, Message } from "semantic-ui-react";
+import { clearError } from "../redux/userSlice";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import RegistrationForm from "../forms/RegistrationForm";
-import { clearError } from "../redux/userSlice";
-import { COLORS, SPACING, SHADOWS } from "../utils/designConstants";
+import { COLORS } from "../utils/designConstants";
 import { useTranslation } from "react-i18next";
 
 const RegisterPage = () => {
-  const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { t, i18n } = useTranslation();
-  const { user, isAuthenticated, error } = useSelector((state) => state.user);
+  const navigate = useNavigate();
+  const { t } = useTranslation();
+  const { error, isAuthenticated, user } = useSelector((state) => state.user);
 
+  // Helper function to get dashboard route based on role
+  const getDashboardRoute = (role) => {
+    switch (role) {
+      case "student":
+        return "/student";
+      case "teacher":
+        return "/teacher";
+      case "admin":
+        return "/admin";
+      case "maintenance":
+        return "/maintenance";
+      default:
+        return "/";
+    }
+  };
+
+  // Redirect if already authenticated or after successful registration
   useEffect(() => {
     if (isAuthenticated && user) {
-      switch (user.role) {
-        case "student":
-          navigate("/student");
-          break;
-        case "teacher":
-          navigate("/teacher");
-          break;
-        case "admin":
-          navigate("/admin");
-          break;
-        default:
-          navigate("/");
-      }
+      navigate(getDashboardRoute(user.role));
     }
   }, [isAuthenticated, user, navigate]);
 
+  // Clear errors when component unmounts
   useEffect(() => {
     return () => {
       dispatch(clearError());
     };
   }, [dispatch]);
 
-  const containerStyle = {
-    minHeight: "80vh",
-    paddingTop: SPACING.xxl,
-    paddingBottom: SPACING.xxl,
-    direction: i18n.language === "ar" ? "rtl" : "ltr",
-  };
-
-  const segmentStyle = {
-    padding: SPACING.xxl,
-    boxShadow: SHADOWS.large,
-    backgroundColor: COLORS.bgLight,
-  };
-
-  const titleStyle = {
-    textAlign: "center",
-    color: COLORS.primaryRed,
-    fontSize: "32px",
-    fontWeight: "bold",
-    marginBottom: SPACING.xl,
-  };
-
   return (
-    <>
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        backgroundColor: "#f8f9fa",
+      }}
+    >
       <Header />
-      <Container style={containerStyle}>
-        <Grid centered>
-          <Grid.Column mobile={16} tablet={10} computer={8}>
-            <Segment style={segmentStyle}>
-              <h2 style={titleStyle}>{t("register")}</h2>
+      <Container
+        style={{
+          flex: 1,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "2rem 1rem",
+        }}
+      >
+        <Segment
+          style={{
+            maxWidth: "600px",
+            width: "100%",
+            padding: "2.5rem",
+            boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
+            borderRadius: "12px",
+          }}
+        >
+          <h2
+            style={{
+              textAlign: "center",
+              color: COLORS.primaryRed,
+              marginBottom: "2rem",
+              fontSize: "1.8rem",
+              fontWeight: "700",
+            }}
+          >
+            {t("register")}
+          </h2>
 
-              {error && (
-                <Message
-                  negative
-                  style={{ textAlign: "center", marginBottom: SPACING.md }}
-                >
-                  {error}
-                </Message>
-              )}
+          {error && (
+            <Message negative style={{ textAlign: "center" }}>
+              {error}
+            </Message>
+          )}
 
-              <RegistrationForm />
-            </Segment>
-          </Grid.Column>
-        </Grid>
+          <RegistrationForm />
+        </Segment>
       </Container>
       <Footer />
-    </>
+    </div>
   );
 };
 
